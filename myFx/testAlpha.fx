@@ -37,22 +37,9 @@ sampler2D tSampler = sampler_state
 float4 PS(PS_Input IN) : COLOR
 {
     float4 D = tex2D(tSampler, IN.UV);
+    D.xyz = D.xyz * D.a;
     float4 col = D;
     return col;
-}
-
-technique alphaBlend 
-{
-    pass P0 
-    < string script = "Draw = Geometry" ;>
-    {
-        AlphaBlendEnable = TRUE;
-        DestBlend = InvSrcAlpha;
-        SrcBlend = SrcAlpha;
-
-        VertexShader = compile vs_3_0 VS();
-        PixelShader = compile ps_3_0 PS();
-    }
 }
 
 technique alphaTest<
@@ -63,10 +50,54 @@ technique alphaTest<
 		string script = "Draw=Geometry;";
     >
     {
-        AlphaBlendEnable = TRUE;
-        DestBlend = InvSrcAlpha;
-        SrcBlend = SrcAlpha;
+        CullMode = CW;
+        ZWriteEnable = false;
+
+        alphatestenable = true;
+        alphafunc = greaterequal;
+        alpharef = 200;
+
         VertexShader = compile vs_3_0 VS();
         PixelShader = compile ps_3_0 PS();
     }
 }
+
+technique alphaBlendTest<
+	string script = "Pass=p0;";
+>
+{
+    pass p0 <
+		string script = "Draw=Geometry;";
+    >
+    {
+        CullMode = CW;
+        ZWriteEnable = false;
+		
+        AlphaBlendEnable = true;
+        BlendOp = Add;
+        SrcBlend = SrcAlpha;
+        DestBlend = InvSrcAlpha;
+
+        alphatestenable = true;
+        alphafunc = greaterequal;
+        alpharef = 200;
+
+        VertexShader = compile vs_3_0 VS();
+        PixelShader = compile ps_3_0 PS();
+    }
+}
+
+technique alphaBlend 
+{
+    pass P0 
+    < string script = "Draw = Geometry" ;>
+    {
+        AlphaBlendEnable = TRUE;
+        SrcBlend = One;
+        DestBlend = InvSrcAlpha;
+
+        VertexShader = compile vs_3_0 VS();
+        PixelShader = compile ps_3_0 PS();
+    }
+}
+
