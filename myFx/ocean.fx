@@ -9,65 +9,6 @@ float3 lightDir : Direction <
 	int RefID = 0;
 	> = { -0.577, -0.577, 0.577 };
 
-struct VSin
-{
-    float4 pos  : POSITION;
-    float2 UV : TEXCOORD0;
-};
-
-struct VSout
-{
-    float4 pos : POSITION;
-    float4 DISPLACE : TEXCOORD1;
-    float2 UV : TEXCOORD0;
-    float4 NORMAL : TEXCOORD2;
-};
-
-float scaleFactor(float4 pos, float scale)
-{
-    float z = (cos(pos.x / 70) + cos(pos.y / 70)) / 2 * scale;
-    return z;
-}
-
-VSout VS(VSin IN)
-{
-    VSout OUT = (VSout) 0;
-
-    float4 p = IN.pos;
-
-    float posOffset = 0.1f;
-    float4 p1 = float4(p.x + posOffset, p.y , p.z, 1.0f);
-    float4 p2 = float4(p.x - posOffset, p.y , p.z, 1.0f);
-    float4 p3 = float4(p.x , p.y + posOffset, p.z, 1.0f);
-    float4 p4 = float4(p.x , p.y - posOffset, p.z, 1.0f);
-
-    float d = scaleFactor(p, max_dis.z);
-    float dis1 = scaleFactor(p1, max_dis.z);
-    float dis2 = scaleFactor(p2, max_dis.z);
-    float dis3 = scaleFactor(p3, max_dis.z);
-    float dis4 = scaleFactor(p4, max_dis.z);
-
-
-
-
-    p.z += d;
-    p1.z += dis1;
-    p2.z += dis2;
-    p3.z += dis3;
-    p4.z += dis4;
-
-    float4 du = p1 - p2;
-    float4 dv = p3 - p4;
-    float3 N = normalize(cross(du.xyz, dv.xyz));
-    //float3 N = normalize(float3(du, dv, 1.0f));
-
-    //OUT.NORMAL = float4(0, 0, 1,1);
-    OUT.NORMAL = float4(N, 1);
-    OUT.UV = IN.UV;
-    OUT.pos = mul(p, wvp);
-    return OUT;
-}
-
 texture tex0
 <
     string UIName = "diffuse";
@@ -82,6 +23,64 @@ sampler2D diffuseSampler = sampler_state
     ADDRESSU = WRAP;
     ADDRESSV = WRAP;
 };
+
+struct VSin
+{
+    float4 pos  : POSITION;
+    float2 UV : TEXCOORD0;
+};
+
+struct VSout
+{
+    float4 pos : POSITION;
+    float4 DISPLACE : TEXCOORD1;
+    float2 UV : TEXCOORD0;
+    float4 NORMAL : TEXCOORD2;
+};
+
+void transPos(inout float4 pos, float scale)
+{
+    float z = (cos(pos.x / 70) + cos(pos.y / 70)) / 2 * scale;
+    pos.z = z;
+}
+
+float4 transNormal(float4 p , float scaler)
+{
+    float4 N;
+
+    //this factor doesn't reanlly matter
+    float posOffset = 1.0f;
+    float4 p1 = float4(p.x + posOffset, p.y, p.z, 1.0f);
+    float4 p2 = float4(p.x - posOffset, p.y, p.z, 1.0f);
+    float4 p3 = float4(p.x, p.y + posOffset, p.z, 1.0f);
+    float4 p4 = float4(p.x, p.y - posOffset, p.z, 1.0f);
+
+    transPos(p1, max_dis.z);
+    transPos(p2, max_dis.z);
+    transPos(p3, max_dis.z);
+    transPos(p4, max_dis.z);
+
+    float4 du = p1 - p2;
+    float4 dv = p3 - p4;
+    N = float4(normalize(cross(du.xyz, dv.xyz)), 1);
+
+    return N;
+}
+
+VSout VS(VSin IN)
+{
+    VSout OUT = (VSout) 0;
+
+    float4 p = IN.pos;
+
+    OUT.NORMAL = transNormal(p, max_dis.z);
+    transPos(p, max_dis.z);
+
+    OUT.UV = IN.UV;
+    OUT.pos = mul(p, wvp);
+    return OUT;
+}
+
 
 float4 colorToGrey(float4 myCol)
 {
