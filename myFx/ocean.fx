@@ -1,7 +1,10 @@
 float4x4 wvp : WORLDVIEWPROJ <string UIWidget = "None";>;
+float4x4 wvpi : WORLDVIEWPROJI;
+
 float4x4 world : WORLD;
 float3 max_dis = { 10,10,100};
 float time : TIME;
+int i;
 
 float3 lightDir : Direction <  
 	string UIName = "Light Direction"; 
@@ -34,9 +37,10 @@ struct VSin
 struct VSout
 {
     float4 pos : POSITION;
-    float4 DISPLACE : TEXCOORD1;
     float2 UV : TEXCOORD0;
+    float2 UV2 : TEXCOORD1;
     float4 NORMAL : TEXCOORD2;
+    float V : COLOR0;
 };
 
 float2 transUV(float2 uv, float2 tile, float2 offset)
@@ -83,11 +87,12 @@ VSout VS(VSin IN)
     OUT.NORMAL = transNormal(p, max_dis.z);
     transPos(p, max_dis.z);
 
-    OUT.UV = transUV(IN.UV, float2(2, 1), float2(time / 10000, 0));
+    OUT.UV  = IN.UV;
+    OUT.UV2 = transUV(IN.UV, float2(2, 1), float2(time / 10000, 0));
     OUT.pos = mul(p, wvp);
+    OUT.V = IN.UV.x;
     return OUT;
 }
-
 
 float4 colorToGrey(float4 myCol)
 {
@@ -117,7 +122,6 @@ float4 HeighMapToNormal(sampler2D tSampler , float2 UV)
     return col;
 }
 
-
 float4 PS(VSout IN) : COLOR
 {
     float4 col;
@@ -125,7 +129,7 @@ float4 PS(VSout IN) : COLOR
     float4 N = float4(normalize(mul(IN.NORMAL.xyz, (float3x3) world)), 1);
     float3 L = lightDir;
     
-    float4 diffuse = tex2D(diffuseSampler , IN.UV);
+    float4 diffuse = tex2D(diffuseSampler , IN.UV2);
     
     //lighting
     col = max(dot(N.xyz, L) , 0);
@@ -138,14 +142,43 @@ float4 PS(VSout IN) : COLOR
     return col;
 }
 
+const float2 gradientV[4] = 
+{
+    float2(1  ,  1),
+    float2(-1 ,  1),
+    float2(1  , -1),
+    float2(-1 , -1)
+};
+
+float map(float v, float max )
+{
+}
+
+float4 perlin(float2 uv)
+{
+    //noise parameters
+    int xGrid = 4;
+    int yGrid = 4;
+    //noise parameters 
+
+    //get uv on grid value
+    float a = uv.x * xGrid;
+    a = frac(a);
+
+    float b = uv.y * yGrid;
+    b = frac(b);
+    
+    float4 no;
+
+
+
+    no.xyz = (b,b,b);
+    no.a = 1;
+    return no;
+}
 float4 PS2(VSout IN) : COLOR
 {
-    float4 col;
-
-    float4 diffuse = tex2D(diffuseSampler, IN.UV);
-    //col = float4(IN.UV, 0, 1);
-    col = diffuse;
-
+    float4 col = perlin(IN.UV);
     return col;
 }
 
