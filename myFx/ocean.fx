@@ -103,10 +103,9 @@ float4 HeighMapToNormal(sampler2D tSampler , float2 UV)
     float4 height_pv = tex2D(tSampler, UV + float2(0, vPixel));
     float4 height_mv = tex2D(tSampler, UV - float2(0, vPixel));
 
-    //there's some problem here
-    //float du = height_mu - height_pu;
-    //float dv = height_mv - height_pv;
-    float3 N = normalize(float3(0.2f , 0.3f , 1.0f));
+    float du = colorToGrey(height_mu - height_pu).r;
+    float dv = colorToGrey(height_mv - height_pv).r;
+    float3 N = normalize(float3(du, dv, 1.0 / 2));
 
     col = float4(N, 1);
     return col;
@@ -115,21 +114,21 @@ float4 HeighMapToNormal(sampler2D tSampler , float2 UV)
 
 float4 PS(VSout IN) : COLOR
 {
-    float4 col = float4(1,0,1,0.2f);
-    //IN.NORMAL = (IN.NORMAL - 0.5) * 2;
+    float4 col;
+
     float4 N = float4(normalize(mul(IN.NORMAL.xyz, (float3x3) world)), 1);
     float3 L = lightDir;
     
     float4 diffuse = tex2D(diffuseSampler , IN.UV);
     
-    col = saturate(dot(N.xyz, L));
-    //col = saturate(IN.NORMAL);
-    //col.g = 1;
-    col.a = 1;
+    //lighting
+    //col = saturate(dot(N.xyz, L));
+    //col.a = 1;
+
+    /*show normal*/
+    col = IN.NORMAL;
     
-    //col = colorToGrey(diffuse);
-    //col = float4(N, 1);
-    //col = HeighMapToNormal(diffuseSampler, IN.UV);
+
     return col;
 }
 
