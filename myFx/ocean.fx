@@ -35,7 +35,7 @@ VSout VS(VSin IN)
 
     float4 p = IN.pos;
 
-    float posOffset = 0.01f;
+    float posOffset = 0.1f;
     float4 p1 = float4(p.x + posOffset, p.y , p.z, 1.0f);
     float4 p2 = float4(p.x - posOffset, p.y , p.z, 1.0f);
     float4 p3 = float4(p.x , p.y + posOffset, p.z, 1.0f);
@@ -56,17 +56,13 @@ VSout VS(VSin IN)
     p3.z += dis3;
     p4.z += dis4;
 
-    float du = p1 - p2;
-    float dv = p3 - p3;
-    float3 N = normalize(float3(du, dv, 1.0 / 2));
+    float4 du = p1 - p2;
+    float4 dv = p3 - p4;
+    float3 N = normalize(cross(du.xyz, dv.xyz));
+    //float3 N = normalize(float3(du, dv, 1.0f));
 
-    float3 n1 = normalize(mul((p - p1), world).xyz);
-    float3 n2 = normalize(mul((p - p2), world).xyz);
-    float3 n3 = normalize(mul((p - p3), world).xyz);
-    float3 n4 = normalize(mul((p - p4), world).xyz);
-
-    OUT.NORMAL = float4((n1 + n3)/2, 1);
-
+    //OUT.NORMAL = float4(0, 0, 1,1);
+    OUT.NORMAL = float4(N, 1);
     OUT.UV = IN.UV;
     OUT.pos = mul(p, wvp);
     return OUT;
@@ -107,9 +103,10 @@ float4 HeighMapToNormal(sampler2D tSampler , float2 UV)
     float4 height_pv = tex2D(tSampler, UV + float2(0, vPixel));
     float4 height_mv = tex2D(tSampler, UV - float2(0, vPixel));
 
-    float du = height_mu - height_pu;
-    float dv = height_mv - height_pv;
-    float3 N = normalize(float3(du, dv, 1.0 / 2));
+    //there's some problem here
+    //float du = height_mu - height_pu;
+    //float dv = height_mv - height_pv;
+    float3 N = normalize(float3(0.2f , 0.3f , 1.0f));
 
     col = float4(N, 1);
     return col;
@@ -119,15 +116,17 @@ float4 HeighMapToNormal(sampler2D tSampler , float2 UV)
 float4 PS(VSout IN) : COLOR
 {
     float4 col = float4(1,0,1,0.2f);
-    float4 N = IN.NORMAL;
-    float3 L = normalize(mul(lightDir, (float3x3) world));
-    //N = (N + 1) / 2;
-    //N.a = 1;
+    //IN.NORMAL = (IN.NORMAL - 0.5) * 2;
+    float4 N = float4(normalize(mul(IN.NORMAL.xyz, (float3x3) world)), 1);
+    float3 L = lightDir;
+    
     float4 diffuse = tex2D(diffuseSampler , IN.UV);
-    col = float4(IN.DISPLACE.z,0,1,1);
-    col = dot(N.xyz,L);
+    
+    col = saturate(dot(N.xyz, L));
+    //col = saturate(IN.NORMAL);
+    //col.g = 1;
     col.a = 1;
-
+    
     //col = colorToGrey(diffuse);
     //col = float4(N, 1);
     //col = HeighMapToNormal(diffuseSampler, IN.UV);
