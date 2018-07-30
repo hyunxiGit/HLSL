@@ -11,6 +11,7 @@ float3 lightDir : Direction <
 
 texture tex0
 <
+    string name = "ocean.tga"; 
     string UIName = "diffuse";
 >;
 
@@ -37,6 +38,12 @@ struct VSout
     float2 UV : TEXCOORD0;
     float4 NORMAL : TEXCOORD2;
 };
+
+float2 transUV(float2 uv, float2 tile, float2 offset)
+{
+    float2 outUV =  uv * tile + offset ;
+    return outUV;
+}
 
 void transPos(inout float4 pos, float scale)
 {
@@ -76,7 +83,7 @@ VSout VS(VSin IN)
     OUT.NORMAL = transNormal(p, max_dis.z);
     transPos(p, max_dis.z);
 
-    OUT.UV = IN.UV;
+    OUT.UV = transUV(IN.UV, float2(2, 1), float2(time / 10000, 0));
     OUT.pos = mul(p, wvp);
     return OUT;
 }
@@ -121,17 +128,54 @@ float4 PS(VSout IN) : COLOR
     float4 diffuse = tex2D(diffuseSampler , IN.UV);
     
     //lighting
-    //col = saturate(dot(N.xyz, L));
-    //col.a = 1;
+    col = max(dot(N.xyz, L) , 0);
+    col.a = 1;
 
     /*show normal*/
-    col = IN.NORMAL;
+    //col = IN.NORMAL;
     
 
     return col;
 }
 
-technique test
+float4 PS2(VSout IN) : COLOR
+{
+    float4 col;
+
+    float4 diffuse = tex2D(diffuseSampler, IN.UV);
+    //col = float4(IN.UV, 0, 1);
+    col = diffuse;
+
+    return col;
+}
+
+technique test2
+<
+	string script = "Pass=p0;";
+>
+{
+    pass p0
+    <string script = "Draw = Geometry";>
+    {
+        CullMode = CW;
+        ZWriteEnable = false;
+		
+        AlphaBlendEnable = true;
+        BlendOp = Add;
+        SrcBlend = SrcAlpha;
+        DestBlend = InvSrcAlpha;
+
+        //alphatestenable = true;
+        //alphafunc = greaterequal;
+        //alpharef = 200;
+
+        VertexShader = compile vs_3_0 VS();
+        PixelShader = compile ps_3_0 PS2();
+    }
+}
+
+
+technique main
 <
 	string script = "Pass=p0;";
 >
@@ -158,7 +202,7 @@ technique test
 }
 
 
-technique main
+technique allAlpha
 <
 	string script = "Pass=p0;";
 >
