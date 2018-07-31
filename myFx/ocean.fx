@@ -2,9 +2,9 @@ float4x4 wvp : WORLDVIEWPROJ <string UIWidget = "None";>;
 float4x4 wvpi : WORLDVIEWPROJI;
 
 float4x4 world : WORLD;
-float3 max_dis = { 10,10,100};
+float3 max_dis = { 10, 10, 100 };
 float time : TIME;
-int i;
+int index = 0;
 
 float3 lightDir : Direction <  
 	string UIName = "Light Direction"; 
@@ -30,7 +30,7 @@ sampler2D diffuseSampler = sampler_state
 
 struct VSin
 {
-    float4 pos  : POSITION;
+    float4 pos : POSITION;
     float2 UV : TEXCOORD0;
 };
 
@@ -40,12 +40,11 @@ struct VSout
     float2 UV : TEXCOORD0;
     float2 UV2 : TEXCOORD1;
     float4 NORMAL : TEXCOORD2;
-    float V : COLOR0;
 };
 
 float2 transUV(float2 uv, float2 tile, float2 offset)
 {
-    float2 outUV =  uv * tile + offset ;
+    float2 outUV = uv * tile + offset;
     return outUV;
 }
 
@@ -55,7 +54,7 @@ void transPos(inout float4 pos, float scale)
     pos.z = z;
 }
 
-float4 transNormal(float4 p , float scaler)
+float4 transNormal(float4 p, float scaler)
 {
     float4 N;
 
@@ -84,13 +83,12 @@ VSout VS(VSin IN)
 
     float4 p = IN.pos;
 
-    OUT.NORMAL = transNormal(p, max_dis.z);
-    transPos(p, max_dis.z);
+    //OUT.NORMAL = transNormal(p, max_dis.z);
+    //transPos(p, max_dis.z);
 
-    OUT.UV  = IN.UV;
-    OUT.UV2 = transUV(IN.UV, float2(2, 1), float2(time / 10000, 0));
+    OUT.UV = IN.UV;
+    //OUT.UV2 = transUV(IN.UV, float2(2, 1), float2(time / 10000, 0));
     OUT.pos = mul(p, wvp);
-    OUT.V = IN.UV.x;
     return OUT;
 }
 
@@ -98,12 +96,12 @@ float4 colorToGrey(float4 myCol)
 {
     float4 col;
     float grey = myCol.r * 0.3f + myCol.g * 0.59 + myCol.b * 0.11f;
-    col.rgb = grey; 
+    col.rgb = grey;
     col.a = myCol.a;
     return col;
 }
 
-float4 HeighMapToNormal(sampler2D tSampler , float2 UV)
+float4 HeighMapToNormal(sampler2D tSampler, float2 UV)
 {
     float4 col;
     float uPixel = (float) 1.0 / 128;
@@ -129,10 +127,10 @@ float4 PS(VSout IN) : COLOR
     float4 N = float4(normalize(mul(IN.NORMAL.xyz, (float3x3) world)), 1);
     float3 L = lightDir;
     
-    float4 diffuse = tex2D(diffuseSampler , IN.UV2);
+    float4 diffuse = tex2D(diffuseSampler, IN.UV2);
     
     //lighting
-    col = max(dot(N.xyz, L) , 0);
+    col = max(dot(N.xyz, L), 0);
     col.a = 1;
 
     /*show normal*/
@@ -142,26 +140,76 @@ float4 PS(VSout IN) : COLOR
     return col;
 }
 
-const float2 gradientV[4] = 
+const float2 gradientV[4] =
 {
-    float2(1  ,  1),
-    float2(-1 ,  1),
-    float2(1  , -1),
-    float2(-1 , -1)
+    float2(1, 1),
+    float2(-1, 1),
+    float2(1, -1),
+    float2(-1, -1)
 };
 
-float map(float v, float max )
+const float NTab[40] =
 {
-}
-
+    0.369811f, 0.432591f, 0.698699f, 0.494396f,
+		0.78118f, -0.163006f, 0.60265f, 0.124138f,
+		0.436394f, -0.297978f, 0.848982f, -0.60845f,
+		0.843762f, 0.185742f, 0.457153f, -0.420334f,
+		0.663712f, -0.68443f, -0.301731f, -0.577495f,
+		0.616757f, 0.768825f, 0.168875f, -0.503554f,
+		0.457153f, -0.884439f, -0.093694f, -0.19049f,
+		-0.956955f, 0.110962f, -0.268189f, 0.0572986f,
+		0.115821f, 0.77523f, 0.620971f, 0.494396f,
+		-0.716028f, -0.477247f, -0.50945f, 0.707089f
+		/*0.819593, -0.123834, 0.559404, 10,
+		-0.522782, -0.586534, 0.618609, 11,
+		-0.792328, -0.577495, -0.196765, 12,
+		-0.674422, 0.0572986, 0.736119, 13,
+		-0.224769, -0.764775, -0.60382, 14,
+		0.492662, -0.71614, 0.494396, 15,
+		0.470993, -0.645816, 0.600905, 16,
+		-0.19049, 0.321113, 0.927685, 17,
+		0.0122118, 0.946426, -0.32269, 18,
+		0.577419, 0.408182, 0.707089, 19,
+		-0.0945428, 0.341843, -0.934989, 20,
+		0.788332, -0.60845, -0.0912217, 21,
+		-0.346889, 0.894997, -0.280445, 22,
+		-0.165907, -0.649857, 0.741728, 23,
+		0.791885, 0.124138, 0.597919, 24,
+		-0.625952, 0.73148, 0.270409, 25,
+		-0.556306, 0.580363, 0.594729, 26,
+		0.673523, 0.719805, 0.168069, 27,
+		-0.420334, 0.894265, 0.153656, 28,
+		-0.141622, -0.279389, 0.949676, 29,
+		-0.803343, 0.458278, 0.380291, 30,
+		0.49355, -0.402088, 0.77119, 31,
+		-0.569811, 0.432591, -0.698699, 0,
+		0.78118, 0.163006, 0.60265, 1,
+		0.436394, -0.297978, 0.848982, 2,
+		0.843762, -0.185742, -0.503554, 3,
+		0.663712, -0.68443, -0.301731, 4,
+		0.616757, 0.768825, 0.168875, 5,
+		0.457153, -0.884439, -0.093694, 6,
+		-0.956955, 0.110962, -0.268189, 7,
+		0.115821, 0.77523, 0.620971, 8,
+		-0.716028, -0.477247, -0.50945, 9,
+		0.819593, -0.123834, 0.559404, 10,
+		-0.522782, -0.586534, 0.618609, 11,
+		-0.792328, -0.577495, -0.196765, 12,
+		-0.674422, 0.0572986, 0.736119, 13,
+		-0.224769, -0.764775, -0.60382, 14,
+		0.492662, -0.71614, 0.494396, 15,
+		0.470993, -0.645816, 0.600905, 16,
+		-0.19049, 0.321113, 0.927685, 17,
+        -0.716028, -0.477247, -0.50945, 18,*/
+};
 float4 perlin(float2 uv)
 {
-    //noise parameters
+    ////noise parameters
     int xGrid = 4;
     int yGrid = 4;
-    //noise parameters 
+    ////noise parameters 
 
-    //get uv on grid value
+    ////get uv on grid value
     float a = uv.x * xGrid;
     a = frac(a);
 
@@ -169,10 +217,14 @@ float4 perlin(float2 uv)
     b = frac(b);
     
     float4 no;
+    ////get ramdom
+    float i = (floor((uv.x) * 1000)) % 39;
+    float j = (floor((abs(uv.y)) * 1000)) % 39;
+    i = min(i, 39);
+    j = min(j, 39);
+    int d = abs(sin(NTab[i]) - sin(NTab[j]))%3;
 
-
-
-    no.xyz = (b,b,b);
+    no.xyz = d;
     no.a = 1;
     return no;
 }
@@ -212,7 +264,6 @@ technique main
 <
 	string script = "Pass=p0;";
 >
-
 {
     pass p0
     <string script = "Draw = Geometry";>
