@@ -169,7 +169,7 @@ const int permutation[256] =
 
 const int4 permutation_test[64] =
 {
-    151, 160, 137, 91, 90, 15,
+   151, 160, 137, 91, 90, 15,
    131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23,
    190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
    88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166,
@@ -202,7 +202,7 @@ int psudurandom(float x, float y, float z)
 }
 
 
-float fade(float t)
+float curve(float t)
 {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
@@ -239,53 +239,11 @@ float grad (int hash, float x , float y , float z)
 
 float fadeLerp(float a, float b, float f)
 {
-    return lerp(a, b, f);
+
+    return lerp(a, b, curve(f));
 }
 
 float4 perlin(float4 p)
-{
-    //grid
-    float x = p[0];
-    float y = p[1];
-    float z = p[2];
-    
-    int xi = floor(x) % 255;
-    int yi = floor(y) % 255;
-    int zi = floor(z) % 255;
-
-    //fraction
-    float xf = frac(x);
-    float yf = frac(y);
-    float zf = frac(z);
-
-    //psuduRandom
-    int aaa, aba, aab, abb, baa, bba, bab, bbb;
-    aaa = psudurandom(xi, yi, zi);
-    aba = psudurandom(xi, inc(yi), zi);
-    aab = psudurandom(xi, yi, inc(zi));
-    abb = psudurandom(xi, inc(yi), inc(zi));
-    baa = psudurandom(inc(xi), yi, zi);
-    bba = psudurandom(inc(xi), inc(yi), zi);
-    bab = psudurandom(inc(xi), yi, inc(zi));
-    bbb = psudurandom(inc(xi), inc(yi), inc(zi));
-
-    //grad
-    float x1 = lerp(grad(aaa, xf, yf, zf),      grad(baa, xf - 1, yf, zf),      xf);
-    float x2 = lerp(grad(aba, xf, yf - 1, zf),  grad(bba, xf - 1, yf - 1, zf),  xf);
-    float y1 = lerp(x1, x2, yf);
-  
-    x1 = lerp(grad(aab, xf, yf, zf - 1),        grad(bab, xf - 1, yf, zf - 1),      xf);
-    x2 = lerp(grad(abb, xf, yf - 1, zf - 1),    grad(bbb, xf - 1, yf - 1, zf - 1),  xf);
-
-    float y2 = lerp(x1, x2, yf);
-    
-    float z1 = (lerp(y1, y2, zf) + 1) / 2; //change range to (0,1)
-
-    float4 col = 0.4f;
-    return col;
-}
-
-float4 perlin_test(float4 p)
 {
     p += 1000; //fake to be all positive
     //grid
@@ -315,16 +273,16 @@ float4 perlin_test(float4 p)
     bbb = psudurandom(inc(xi), inc(yi), inc(zi));
 
     //grad
-    float x1 = lerp(grad(aaa, xf, yf, zf), grad(baa, xf - 1, yf, zf), xf);
-    float x2 = lerp(grad(aba, xf, yf - 1, zf), grad(bba, xf - 1, yf - 1, zf), xf);
-    float y1 = lerp(x1, x2, yf);
+    float x1 = fadeLerp(grad(aaa, xf, yf, zf), grad(baa, xf - 1, yf, zf), xf);
+    float x2 = fadeLerp(grad(aba, xf, yf - 1, zf), grad(bba, xf - 1, yf - 1, zf), xf);
+    float y1 = fadeLerp(x1, x2, yf);
   
-    x1 = lerp(grad(aab, xf, yf, zf - 1), grad(bab, xf - 1, yf, zf - 1), xf);
-    x2 = lerp(grad(abb, xf, yf - 1, zf - 1), grad(bbb, xf - 1, yf - 1, zf - 1), xf);
+    x1 = fadeLerp(grad(aab, xf, yf, zf - 1), grad(bab, xf - 1, yf, zf - 1), xf);
+    x2 = fadeLerp(grad(abb, xf, yf - 1, zf - 1), grad(bbb, xf - 1, yf - 1, zf - 1), xf);
 
-    float y2 = lerp(x1, x2, yf);
+    float y2 = fadeLerp(x1, x2, yf);
     
-    float z1 = (lerp(y1, y2, zf) + 1) / 2; //change range to (0,1)
+    float z1 = (fadeLerp(y1, y2, zf) + 1) / 2; //change range to (0,1)
 
     float4 col = z1;
     return col;
@@ -333,7 +291,7 @@ float4 perlin_test(float4 p)
 float4 PS2(VSout IN) : COLOR
 {
     float4 p = mul(IN.pos, wvpi);
-    float4 col = perlin_test(IN.pos2);
+    float4 col = perlin(IN.pos2);
     return col;
 }
 
