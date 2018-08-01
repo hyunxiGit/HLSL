@@ -314,7 +314,19 @@ float4 perlin_test(float4 p)
     bab = psudurandom(inc(xi), yi, inc(zi));
     bbb = psudurandom(inc(xi), inc(yi), inc(zi));
 
-    float4 col = aaa/255;
+    //grad
+    float x1 = lerp(grad(aaa, xf, yf, zf), grad(baa, xf - 1, yf, zf), xf);
+    float x2 = lerp(grad(aba, xf, yf - 1, zf), grad(bba, xf - 1, yf - 1, zf), xf);
+    float y1 = lerp(x1, x2, yf);
+  
+    x1 = lerp(grad(aab, xf, yf, zf - 1), grad(bab, xf - 1, yf, zf - 1), xf);
+    x2 = lerp(grad(abb, xf, yf - 1, zf - 1), grad(bbb, xf - 1, yf - 1, zf - 1), xf);
+
+    float y2 = lerp(x1, x2, yf);
+    
+    float z1 = (lerp(y1, y2, zf) + 1) / 2; //change range to (0,1)
+
+    float4 col = z1;
     return col;
 }
 
