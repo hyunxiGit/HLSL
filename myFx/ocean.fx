@@ -215,31 +215,36 @@ int inc(int i)
 float grad (int hash, float x , float y , float z)
 {
     float value;
-    int h = hash % 16;
+    int h = hash % 16; // h: [0,15]
 
-    float u = h < 8 /* 0b1000 */ ? x : y; // If the most significant bit (MSB) of the hash is 0 then set u = x.  Otherwise y.
-    
-    float v; // In Ken Perlin's original implementation this was another conditional operator (?:).  I
-                                                          // expanded it for readability.  
-    if (h < 4 /* 0b0100 */)                                // If the first and second significant bits are 0 set v = y
-        v = y;
-    else if (h == 12 /* 0b1100 */ || h == 14 /* 0b1110*/)  // If the first and second significant bits are 1 set v = x
-        v = x;
-    else // If the first and second significant bits are not equal (0/1, 1/0) set v = z
-        v = z;
-    
-    int r1 = (h % 2) * (-2)+1;
-    int r2 = (h % 4) < 2 ? 1 : -1;
+    //float u = h < 8 /* 0b1000 */ ? x : y; 
+    int i = saturate(floor(((float) h) / 8));
+    float u = (1-i)*x + i*y;
 
-    value = r1 * u + r2 * v;
+    //float v; // expanded it for readability.  
+    //if (h < 4 /* 0b0100 */)                                
+    //    v = y;
+    //else if (h == 12 /* 0b1100 */ || h == 14 /* 0b1110*/)  
+    //    v = x;
+    //else 
+    //    v = z;
+    int h1 = h + 1;
+    i = saturate(1 - h1 % 13) + saturate(1 - h1 % 15);
+    int j = saturate(4 - h);
+    int k = 1 - saturate(i + j);
+    float v = i * x + j * y + k * z;
 
     //value = ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+    int l = 1- 2*(h % 2);
+    int m = saturate(2 - (h % 4));
+
+    value = l * u + m * v;
+
     return value;
 }
 
 float fadeLerp(float a, float b, float f)
 {
-
     return lerp(a, b, curve(f));
 }
 
