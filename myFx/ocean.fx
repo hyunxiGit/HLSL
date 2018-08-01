@@ -187,6 +187,36 @@ int inc(int i)
     return i + 1;
 }
 
+float grad (int hash, float x , float y , float z)
+{
+    float value;
+    int h = hash % 16;
+
+    float u = h < 8 /* 0b1000 */ ? x : y; // If the most significant bit (MSB) of the hash is 0 then set u = x.  Otherwise y.
+    
+    float v; // In Ken Perlin's original implementation this was another conditional operator (?:).  I
+                                                          // expanded it for readability.  
+    if (h < 4 /* 0b0100 */)                                // If the first and second significant bits are 0 set v = y
+        v = y;
+    else if (h == 12 /* 0b1100 */ || h == 14 /* 0b1110*/)  // If the first and second significant bits are 1 set v = x
+        v = x;
+    else // If the first and second significant bits are not equal (0/1, 1/0) set v = z
+        v = z;
+    
+    int r1 = (h % 2) * (-2)+1;
+    int r2 = (h % 4) < 2 ? 1 : -1;
+
+    value = r1 * u + r2 * v;
+
+    //value = ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+    return value;
+}
+
+float fadeLerp(float a, float b, float f)
+{
+    return lerp(a, b, f);
+}
+
 float4 perlin(float4 p)
 {
     //grid
@@ -213,6 +243,18 @@ float4 perlin(float4 p)
     bba = psudurandom(inc(xi), inc(yi), zi);
     bab = psudurandom(inc(xi), yi, inc(zi));
     bbb = psudurandom(inc(xi), inc(yi), inc(zi));
+
+    //grad
+    float x1 = lerp(grad(aaa, xf, yf, zf),      grad(baa, xf - 1, yf, zf),      xf);
+    float x2 = lerp(grad(aba, xf, yf - 1, zf),  grad(bba, xf - 1, yf - 1, zf),  xf);
+    float y1 = lerp(x1, x2, yf);
+  
+    x1 = lerp(grad(aab, xf, yf, zf - 1),        grad(bab, xf - 1, yf, zf - 1),      xf);
+    x2 = lerp(grad(abb, xf, yf - 1, zf - 1),    grad(bbb, xf - 1, yf - 1, zf - 1),  xf);
+
+    float y2 = lerp(x1, x2, yf);
+    
+    float z1 = (lerp(y1, y2, zf) + 1) / 2; //change range to (0,1)
 
     float4 col = 0.4f;
     return col;
