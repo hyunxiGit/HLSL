@@ -78,22 +78,6 @@ float4 transNormal(float4 p, float scaler)
     return N;
 }
 
-VSout VS(VSin IN)
-{
-    VSout OUT = (VSout) 0;
-
-    float4 p = IN.pos;
-
-    //OUT.NORMAL = transNormal(p, max_dis.z);
-    //transPos(p, max_dis.z);
-
-    OUT.UV = IN.UV;
-    //OUT.UV2 = transUV(IN.UV, float2(2, 1), float2(time / 10000, 0));
-    OUT.pos = mul(p, wvp);
-    OUT.pos2 = p;
-    return OUT;
-}
-
 float4 colorToGrey(float4 myCol)
 {
     float4 col;
@@ -121,8 +105,6 @@ float4 HeighMapToNormal(sampler2D tSampler, float2 UV)
     col = float4(N, 1);
     return col;
 }
-
-
 
 //----------------------------perlin noise--------------------------------------------
 const int4 permutation[64] =
@@ -253,9 +235,25 @@ float4 perlin(float4 p , float4 grid)
 
 //----------------------------perlin noise--------------------------------------------
 
+VSout VS(VSin IN)
+{
+    VSout OUT = (VSout) 0;
 
+    float4 p = IN.pos;
 
+    OUT.NORMAL = transNormal(p, max_dis.z);
+    transPos(p, max_dis.z);
+    
+    //pelin noise
+    float4 g = float4(10 , 10 , 10 , 10);
+    p += perlin(p, g) * 0.2f;
 
+    OUT.UV = IN.UV;
+    //OUT.UV2 = transUV(IN.UV, float2(2, 1), float2(time / 10000, 0));
+    OUT.pos = mul(p, wvp);
+    OUT.pos2 = p;
+    return OUT;
+}
 
 float4 PS(VSout IN) : COLOR
 {
@@ -334,8 +332,6 @@ technique test2
         PixelShader = compile ps_3_0 PS2();
     }
 }
-
-
 
 technique allAlpha
 <
