@@ -48,12 +48,12 @@ PS_IN VS(VS_IN IN)
     OUT.pos = mul(IN.pos, wvp);
     OUT.nor_w = mul(IN.nor, (float3x3)world);
 
-    float3 pw = mul(IN.pos, world);
+    float3 pw = mul(IN.pos, world).xyz;
 
     //ViewI[3] : viewpoint in world space
-    OUT.viw.xyz = normalize((ViewI[3] - pw).xyz);
+    OUT.viw.xyz = normalize((ViewI[3].xyz - pw).xyz);
 
-    OUT.light = normalize(Lamp0Pos - pw);
+    OUT.light = Lamp0Pos - pw;
     return OUT;
 }
 
@@ -61,10 +61,19 @@ float4 PS (PS_IN IN) : SV_Target
 {
     float4 COL = { 0,0,0,1 };
     float3 N = IN.nor_w;
-    float3 L = IN.light;
+    float3 LP = IN.light;
+    float3 LD = normalize(mul(Lamp0Pos, (float3x3) world));
     float3 LC = Lamp0Color;
     float3 V = IN.viw;
 
+    //point light
+    float3 L = normalize(LP);
+    //light attenuation, distance is 100
+    float att = pow(saturate(1 - length(LP) / 100), 2);
+    
+    //directional light
+    //L = LD;
+    
     //hemisphere ambient light
     float3 colUp_a = { 0.5, 0, 0 };
     colUp_a *= 0.5f;//Intensity
@@ -81,9 +90,10 @@ float4 PS (PS_IN IN) : SV_Target
   
     //if use lit function
     float4 litV = lit(dot(L, N), dot(Hn, N), 25);
-    D = litV.y * LC;
+    D = litV.y * LC *att;
     S = litV.y * litV.z; 
-
+    
+    COL.xyz = A + D + S;
     return COL;
 }
 
