@@ -66,13 +66,35 @@ float4 PS (PS_IN IN) : SV_Target
     float3 LC = Lamp0Color;
     float3 V = IN.viw;
 
-    //point light
-    float3 L = normalize(LP);
-    //light attenuation, distance is 100
-    float att = pow(saturate(1 - length(LP) / 100), 2);
-    
-    //directional light
-    //L = LD;
+    float3 L;
+    float att;
+
+    {   //spot light-----------------------------------------------------  
+        float CosIn = 0.866; // 30 degree
+        float CosOut = 0.5;  //60 sdegree
+        L = normalize(LP);
+        float3 cosThe = dot(LD, L);
+        float attCon = saturate((cosThe - CosOut) * ( 60-30));
+        attCon *= attCon;
+        //light attenuation, distance is 200
+        att = pow(saturate(1 - length(LP) / 200), 2);
+        att *= attCon;
+        //spot light----------------------------------------------------- 
+    }
+
+    /*{   //point light---------------------------------------------------  
+        L = normalize(LP);
+        //light attenuation, distance is 100
+        att = pow(saturate(1 - length(LP) / 200), 2);
+        //point light---------------------------------------------------
+    }*/
+
+    /*{   //directional light--------------------------------------------
+        L = LD;
+        att = 1;
+        //directional light--------------------------------------------
+    }*/
+
     
     //hemisphere ambient light
     float3 colUp_a = { 0.5, 0, 0 };
