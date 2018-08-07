@@ -40,6 +40,7 @@ struct PS_IN
     float3 nor_w : TEXCOORD1;
     float3 viw : TEXCOORD2;
     float3 light : TEXCOORD3;
+    float3 pw : TEXCOORD4;
 };
 
 PS_IN VS(VS_IN IN)
@@ -54,6 +55,7 @@ PS_IN VS(VS_IN IN)
     OUT.viw.xyz = normalize((ViewI[3].xyz - pw).xyz);
 
     OUT.light = Lamp0Pos - pw;
+    OUT.pw = pw;
     return OUT;
 }
 
@@ -69,18 +71,19 @@ float4 PS (PS_IN IN) : SV_Target
     float3 L;
     float att;
 
-    {   //spot light-----------------------------------------------------  
+
+    /*{   //spot light-----------------------------------------------------  
         float CosIn = 0.866; // 30 degree
         float CosOut = 0.5;  //60 sdegree
         L = normalize(LP);
         float3 cosThe = dot(LD, L);
-        float attCon = saturate((cosThe - CosOut) * ( 60-30));
+        float attCon = saturate((cosThe - CosOut) /(CosIn - CosOut));
         attCon *= attCon;
-        //light attenuation, distance is 200
+        light attenuation, distance is 200
         att = pow(saturate(1 - length(LP) / 200), 2);
         att *= attCon;
-        //spot light----------------------------------------------------- 
-    }
+        spot light----------------------------------------------------- 
+    }*/
 
     /*{   //point light---------------------------------------------------  
         L = normalize(LP);
@@ -88,6 +91,25 @@ float4 PS (PS_IN IN) : SV_Target
         att = pow(saturate(1 - length(LP) / 200), 2);
         //point light---------------------------------------------------
     }*/
+
+    {   //capsule light---------------------------------------------------  
+        float3 P = IN.pw;
+        float3 A = float3(200,0,100); // light position
+        float3 B = float3(-200,0,100); // ligt vector ,length is 100
+        float BA = B - A;
+
+        float3 PA = P-A ;
+        float O = dot(PA, BA);
+        float3 OA = normalize(BA)*O;
+        float M = saturate(O / 100);
+
+        float3 PO = PA - OA;
+
+        L = PO;
+        //light attenuation, distance is 100
+        att = pow(saturate(1 - length(PO) / 50), 2);
+        //capsule light---------------------------------------------------
+    }
 
     /*{   //directional light--------------------------------------------
         L = LD;
@@ -98,9 +120,9 @@ float4 PS (PS_IN IN) : SV_Target
     
     //hemisphere ambient light
     float3 colUp_a = { 0.5, 0, 0 };
-    colUp_a *= 0.5f;//Intensity
+    colUp_a *= 0.2f;//Intensity
     float3 colDown_a = {0, 0.5, 0 };
-    colDown_a *= 0.5f;
+    colDown_a *= 0.2f;
     float3 A = mad(N.z, colUp_a - colDown_a, colDown_a);
 
     //direction light phon diffuse
