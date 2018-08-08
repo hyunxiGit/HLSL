@@ -94,21 +94,32 @@ float4 PS (PS_IN IN) : SV_Target
 
     {   //capsule light---------------------------------------------------  
         float3 P = IN.pw;
-        float3 A = float3(200,0,100); // light position
-        float3 B = float3(-200,0,100); // ligt vector ,length is 100
-        float BA = B - A;
+        float3 A = float3(0,0,0); // light position
+
+        float3 B = float3(800, 0, 0); // ligt vector ,length is 100
+        float3 BA = B - A;
 
         float3 PA = P-A ;
         float O = dot(PA, BA);
-        float3 OA = normalize(BA)*O;
-        float M = saturate(O / 100);
+        if (O <=0)
+        {
+            L =  A - P;
+        }
+        else if (O > length(BA))
+        {
+            L = B - P;
+        }
+        else
+        {
+            float3 OA = BA * O / length(BA);
+            float3 OP = OA - PA;
+            L = OP;
+        }
+            
+        // light attenuation, distance is100
+        att = pow(saturate(1 - length(L) / 1000), 2);
 
-        float3 PO = PA - OA;
-
-        L = PO;
-        //light attenuation, distance is 100
-        att = pow(saturate(1 - length(PO) / 50), 2);
-        //capsule light---------------------------------------------------
+        L = normalize(L);
     }
 
     /*{   //directional light--------------------------------------------
@@ -130,14 +141,15 @@ float4 PS (PS_IN IN) : SV_Target
 
     //blinn specular
     float3 Hn = normalize(L + V);
-    float3 S = pow(dot(Hn, N) , 35);
+    //float3 S = pow(dot(Hn, N) , 35);
   
+    
     //if use lit function
     float4 litV = lit(dot(L, N), dot(Hn, N), 25);
     D = litV.y * LC *att;
-    S = litV.y * litV.z; 
+    //S = litV.y * litV.z; 
     
-    COL.xyz = A + D + S;
+    COL.xyz = D;
     return COL;
 }
 
