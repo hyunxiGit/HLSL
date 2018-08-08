@@ -94,30 +94,38 @@ float4 PS (PS_IN IN) : SV_Target
 
     {   //capsule light---------------------------------------------------  
         float3 P = IN.pw;
-        float3 A = float3(0,0,0); // light position
-
-        float3 B = float3(800, 0, 0); // ligt vector ,length is 100
-        float3 BA = B - A;
+        //two end for capsule light
+        float3 A = float3(-400,0,0); 
+        float3 B = float3(400, 0, 0); 
+        //light vector
+        float3 BA = B - A; 
+        float3 BA_normal = normalize(BA);
+        float BA_length = length(BA);
 
         float3 PA = P-A ;
         float O = dot(PA, BA);
-        if (O <=0)
+
+        float3 M = A + BA_normal * saturate(O) * BA_length;
+        M = A + BA_normal * saturate(O) * BA_length;
+        //L = A - P;
+        if (O<=0)
         {
-            L =  A - P;
+            L = A - P;
         }
-        else if (O > length(BA))
+        else if (O > BA_length)
         {
             L = B - P;
         }
         else
         {
-            float3 OA = BA * O / length(BA);
-            float3 OP = OA - PA;
-            L = OP;
+            float3 M = A + BA * O / BA_length;
+            L = M - P;
+
         }
             
+
         // light attenuation, distance is100
-        att = pow(saturate(1 - length(L) / 1000), 2);
+        att =  pow(saturate(1 - length(L) / 100), 2);
 
         L = normalize(L);
     }
@@ -145,8 +153,8 @@ float4 PS (PS_IN IN) : SV_Target
   
     
     //if use lit function
-    float4 litV = lit(dot(L, N), dot(Hn, N), 25);
-    D = litV.y * LC *att;
+    //float4 litV = lit(dot(L, N), dot(Hn, N), 25);
+    //D = litV.y * LC *att;
     //S = litV.y * litV.z; 
     
     COL.xyz = D;
