@@ -38,6 +38,7 @@ Texture2D<float4> detail_map_r <
     int Texcoord = 0;
 	int MapChannel = 1;
 >;
+float3 d1HSV = float3(0, 1, 1); //red
 
 Texture2D<float4> detail_map_g < 
 	string UIName = "detail map 2";
@@ -45,6 +46,7 @@ Texture2D<float4> detail_map_g <
     int Texcoord = 0;
 	int MapChannel = 1;
 >;
+float3 d2HSV = float3(0.333, 1, 1); //green
 
 SamplerState colorMapSampler
 {
@@ -78,6 +80,47 @@ PS_IN VS(VS_IN IN)
     OUT.pos = mul(IN.pos, wvp);
     OUT.uv = IN.uv;
     return (OUT);
+}
+float3 RGBtoHSV(float3 RGB)
+{
+    float3 HSL;
+
+    float r = RGB.r;
+    float g = RGB.g;
+    float b = RGB.b;
+
+    float M = max(max(r, g), b);
+    float m = min(min(r, g), b);
+    float C = M - m;
+    float H;
+
+    if (C>0)
+    {
+        if ( r == M)
+        {
+            H = fmod((g - b) / C, 6) / 6;
+        }
+        else if (g == M)
+        {
+            H = ((b - r) / C + 2) / 6;
+        }
+        else
+        {
+            H = ((r - g) / C + 4) / 6;
+        }
+    }
+    else
+    {
+        H = 0.0f;
+    }
+
+    float S = C / M;
+    float V = M;
+
+    HSL.x = H;
+    HSL.y = S;
+    HSL.z = V;
+    return HSL;
 }
 
 float4 PS(PS_IN IN) : SV_Target
