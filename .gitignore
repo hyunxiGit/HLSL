@@ -1,5 +1,7 @@
 .vs/
 fxProject/
 max/
-playground/playground1/
+playground/playground1/.vs/
+playground/playground1/Debug/
+playground/playground1/playground1/Debug/
 Packt.HLSL Development Cookbook.2013.pdf
