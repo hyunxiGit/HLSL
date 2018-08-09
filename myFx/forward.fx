@@ -95,37 +95,21 @@ float4 PS (PS_IN IN) : SV_Target
     {   //capsule light---------------------------------------------------  
         float3 P = IN.pw;
         //two end for capsule light
-        float3 A = float3(-400,0,0); 
-        float3 B = float3(400, 0, 0); 
+        float3 A = float3(-100,0,0); 
+        float3 B = float3(100, 0, 0); 
         //light vector
         float3 BA = B - A; 
         float3 BA_normal = normalize(BA);
         float BA_length = length(BA);
 
         float3 PA = P-A ;
-        float O = dot(PA, BA);
 
-        float3 M = A + BA_normal * saturate(O) * BA_length;
-        M = A + BA_normal * saturate(O) * BA_length;
-        //L = A - P;
-        if (O<=0)
-        {
-            L = A - P;
-        }
-        else if (O > BA_length)
-        {
-            L = B - P;
-        }
-        else
-        {
-            float3 M = A + BA * O / BA_length;
-            L = M - P;
-
-        }
+        float O = saturate(dot(PA, BA_normal) / BA_length);
+        float3 M = A + O * BA_normal * BA_length;
+        L = M - P;
             
-
         // light attenuation, distance is100
-        att =  pow(saturate(1 - length(L) / 100), 2);
+        att =  pow(saturate(1 - length(L) / 50), 2);
 
         L = normalize(L);
     }
@@ -145,7 +129,7 @@ float4 PS (PS_IN IN) : SV_Target
     float3 A = mad(N.z, colUp_a - colDown_a, colDown_a);
 
     //direction light phon diffuse
-    float3 D = LC * dot(N, L) * 0.7f; //intensity
+    float3 D = LC * dot(N, L) * att; //intensity
 
     //blinn specular
     float3 Hn = normalize(L + V);
