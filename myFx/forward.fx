@@ -95,8 +95,8 @@ float4 PS (PS_IN IN) : SV_Target
     {   //capsule light---------------------------------------------------  
         float3 P = IN.pw;
         //two end for capsule light
-        float3 A = float3(-100,0,0); 
-        float3 B = float3(100, 0, 0); 
+        float3 A = float3(-400,0,0); 
+        float3 B = float3(400, 0, 0); 
         //light vector
         float3 BA = B - A; 
         float3 BA_normal = normalize(BA);
@@ -109,7 +109,7 @@ float4 PS (PS_IN IN) : SV_Target
         L = M - P;
             
         // light attenuation, distance is100
-        att =  pow(saturate(1 - length(L) / 50), 2);
+        att =  pow(saturate(1 - length(L) / 100), 2);
 
         L = normalize(L);
     }
