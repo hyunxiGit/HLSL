@@ -2,6 +2,8 @@ float4x4 wvp : WorldViewProjection;
 float4x4 viewI : ViewInverse;
 float4x4 world : WORLD;
 
+string TEXTUREPATH = "D:/work/HLSL/texture/";
+
 float3 RGBtoHSV(float3 RGB)
 {
     float3 HSL;

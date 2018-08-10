@@ -1,4 +1,13 @@
 #include "Common/Common.hlsli"
+#define BASE_A "D:/work/HLSL/texture/blendBase.tga"
+//d1
+#define D1_A "D:/work/HLSL/texture/earth_a.jpg"
+#define D1_N "D:/work/HLSL/texture/earth_n.jpg"
+#define D1_R "D:/work/HLSL/texture/earth_r.jpg"
+//d2
+#define D2_A "D:/work/HLSL/texture/grass_a.jpg"
+#define D2_N "D:/work/HLSL/texture/grass_n.jpg"
+#define D2_R "D:/work/HLSL/texture/grass_r.jpg"
 
 string ParamID = "0x003";
 
@@ -36,8 +45,10 @@ float3 Lamp0Pos : POSITION <
 > = { -0.5f, 2.0f, 1.25f };
 
 //base map
+
 Texture2D<float4> color_texture < 
 	string UIName = "Base Map";
+    string name = BASE_A; 
 	string ResourceType = "2D";
     int Texcoord = 0;
 	int MapChannel = 1;
@@ -72,6 +83,7 @@ float4 d1HSV <
 Texture2D<float4> detail_map_r < 
 	string UIName = "d1 abedo";
 	string ResourceType = "2D";
+    string name = D1_A; 
     int Texcoord = 0;
 	int MapChannel = 1;
     int UIOrder = 4;
@@ -80,6 +92,7 @@ Texture2D<float4> detail_map_r <
 Texture2D<float4> normalmap1 < 
 	string UIName = "d1 normal";
 	string ResourceType = "2D";
+    string name = D1_N; 
     int Texcoord = 0;
 	int MapChannel = 1;
     int UIOrder = 5;
@@ -88,6 +101,7 @@ Texture2D<float4> normalmap1 <
 Texture2D<float4> roughmap1 < 
 	string UIName = "d1 rough";
 	string ResourceType = "2D";
+    string name = D1_R; 
     int Texcoord = 0;
 	int MapChannel = 1;
     int UIOrder = 6;
@@ -106,6 +120,7 @@ float4 d2HSV <
 Texture2D<float4> detail_map_g < 
 	string UIName = "d2 abedo";
 	string ResourceType = "2D";
+    string name = D2_A; 
     int Texcoord = 0;
 	int MapChannel = 1;
 >;
@@ -113,6 +128,7 @@ Texture2D<float4> detail_map_g <
 Texture2D<float4> normalmap2 < 
 	string UIName = "d2 normal";
 	string ResourceType = "2D";
+    string name = D2_N; 
     int Texcoord = 0;
 	int MapChannel = 1;
 >;
@@ -120,6 +136,7 @@ Texture2D<float4> normalmap2 <
 Texture2D<float4> roughmap2 < 
 	string UIName = "d2 rough";
 	string ResourceType = "2D";
+    string name = D2_R; 
     int Texcoord = 0;
 	int MapChannel = 1;
 >;
