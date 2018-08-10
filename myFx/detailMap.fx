@@ -196,14 +196,16 @@ PS_IN VS(VS_IN IN)
     OUT.nor = IN.nor;
     return (OUT);
 }
-float4 detailBlending(float4 baseColor, float4 d1, float4 d2)
+
+
+void getWeight(float4 baseColor, inout float weight [2])
 {
     float4 col;
 
     float3 bHSV = RGBtoHSV(baseColor.rgb);
 
     //calculate distance 
-    int detailSize = 2;
+
     float3 detailVec[2] = { RGBtoHSV(d1HSV.xyz), RGBtoHSV(d2HSV.xyz) };
     float distance[2] = { 0, 0 };
     float C = 0;
@@ -224,12 +226,8 @@ float4 detailBlending(float4 baseColor, float4 d1, float4 d2)
 
     for (int j = 0; j < 2; j++)
     {
-        distance[j] = distance[j] / C;
+        weight[j] = distance[j] / C;
     }
-
-    col = baseColor * (1 - m) + (d1 * distance[0] + d2 * distance[1]) * m;
-
-    return col;
 }
 
 float4 PS(PS_IN IN) : SV_Target
@@ -237,16 +235,21 @@ float4 PS(PS_IN IN) : SV_Target
     float4 col;
     int UVscale = 5;
     float4 bCol = color_texture.Sample(colorMapSampler, IN.uv);
-    float4 d1Col = detail_map_r.Sample(detail_map_r_Sampler, IN.uv * UVscale);
-    float4 d2Col = detail_map_g.Sample(detail_map_g_Sampler, IN.uv * UVscale);
+    float4 d1_a = detail_map_r.Sample(detail_map_r_Sampler, IN.uv * UVscale);
+    float4 d2_a = detail_map_g.Sample(detail_map_g_Sampler, IN.uv * UVscale);
     float4 normal = normalmap1.Sample(normalMapSampler, IN.uv * UVscale);
     float4 rought = roughmap1.Sample(roughMapSampler, IN.uv * UVscale);
     float specular = saturate(pow(0.7 - rought.x, 4) * 40);
     specular = saturate(pow(1 - rought.x, 5));
     
-    //normal
+    //get weight
+    float weight[2] = { 0, 0 };
+    getWeight(bCol, weight);
 
-    float3 diffuse = detailBlending(bCol, d1Col, d2Col).xyz;
+    //abedo
+    float3 diffuse = bCol * (1 - m) + (d1_a * weight[0] + d2_a * weight[1]) * m;
+    
+    //normal
     float3 N = normal * 2.0f - 1.0f;
     N = normalize(float3((N.xy + IN.nor.xy), IN.nor.z));
     N = normalize(mul(N, (float3x3) world));
