@@ -1,4 +1,6 @@
 float4x4 wvp : WorldViewProjection;
+float4x4 ViewI : ViewInverse;
+float4x4 world : WORLD;
 
 string ParamID = "0x003";
 
@@ -14,15 +16,27 @@ struct VS_IN
 {
     float4 pos : POSITION;
     float2 uv : TEXCOORD0;
+    float3 nor : NORMAL;
 };
 
 struct PS_IN
 {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float3 viw : TEXCOORD2;
+    float3 nor : TEXCOORD3;
 };
 
 //ui elements
+//lights
+
+float3 Lamp0Pos : POSITION <
+    string Object = "PointLight0";
+    string UIName =  "Light Position";
+    string Space = "World";
+	int refID = 0;
+> = { -0.5f, 2.0f, 1.25f };
+
 //base map
 Texture2D<float4> color_texture < 
 	string UIName = "Base Map";
@@ -32,6 +46,13 @@ Texture2D<float4> color_texture <
 >;
 
 //detail map 
+
+
+float4 d1HSV <
+	string UIName = "detail map 1 color";
+	string UIWidget = "Color";
+> = float4(0.39f, 0.26f, 0.157f, 1.0f);
+
 Texture2D<float4> detail_map_r < 
 	string UIName = "detail map 1";
 	string ResourceType = "2D";
@@ -39,10 +60,20 @@ Texture2D<float4> detail_map_r <
 	int MapChannel = 1;
 >;
 
-float4 d1HSV <
-	string UIName = "detail map 1 color";
-	string UIWidget = "Color";
-> = float4(0.39f, 0.26f, 0.157f, 1.0f);
+Texture2D<float4> normalmap1 < 
+	string UIName = "normal map 1";
+	string ResourceType = "2D";
+    int Texcoord = 0;
+	int MapChannel = 1;
+>;
+
+Texture2D<float4> roughmap1 < 
+	string UIName = "roughness map";
+	string ResourceType = "2D";
+    int Texcoord = 0;
+	int MapChannel = 1;
+>;
+
 
 //float3 d1HSV = detailC1.xyz; //red
 
@@ -58,6 +89,7 @@ float4 d2HSV <
 	string UIWidget = "Color";
 > = float4(0.149f, 0.537f, 0.098f, 1.0f);
 
+//blending parameters
 int n <
     string UIName = "blend power";
 	string UIWidget = "slider";
@@ -81,6 +113,25 @@ SamplerState colorMapSampler
     AddressV = Wrap;
 };
 
+SamplerState normalMapSampler
+{
+    MinFilter = Linear;
+    MagFilter = Linear;
+    MipFilter = Linear;
+    AddressU = Wrap;
+    AddressV = Wrap;
+};
+
+SamplerState roughMapSampler
+{
+    MinFilter = Linear;
+    MagFilter = Linear;
+    MipFilter = Linear;
+    AddressU = Wrap;
+    AddressV = Wrap;
+};
+
+
 SamplerState detail_map_r_Sampler
 {
     MinFilter = Linear;
@@ -101,8 +152,11 @@ SamplerState detail_map_g_Sampler
 PS_IN VS(VS_IN IN)
 {
     PS_IN OUT = (PS_IN) 0;
+    float3 pw = mul(IN.pos, world).xyz;
     OUT.pos = mul(IN.pos, wvp);
     OUT.uv = IN.uv;
+    OUT.viw.xyz = normalize((ViewI[3].xyz - pw).xyz);
+    OUT.nor = IN.nor;
     return (OUT);
 }
 float3 RGBtoHSV(float3 RGB)
@@ -147,14 +201,12 @@ float3 RGBtoHSV(float3 RGB)
     return HSL;
 }
 
-float4 PS(PS_IN IN) : SV_Target
+float4 detailBlending(float4 baseColor, float4 d1, float4 d2)
 {
     float4 col;
-    float4 bCol = color_texture.Sample(colorMapSampler, IN.uv);
-    float4 d1Col = detail_map_r.Sample(detail_map_r_Sampler, IN.uv*5);
-    float4 d2Col = detail_map_g.Sample(detail_map_g_Sampler, IN.uv*5);
 
-    float3 bHSV = RGBtoHSV(bCol.rgb);
+    float3 bHSV = RGBtoHSV(baseColor.rgb);
+
     //calculate distance 
     int detailSize = 2;
     float3 detailVec[2] = { RGBtoHSV(d1HSV.xyz), RGBtoHSV(d2HSV.xyz) };
@@ -170,7 +222,7 @@ float4 PS(PS_IN IN) : SV_Target
 
         v.x = min(v.x, 1.0 - v.x);
 
-        float dis = 1.0f / pow(dot(v,v), n);
+        float dis = 1.0f / pow(dot(v, v), n);
         distance[i] = dis;
         C += dis;
     }
@@ -180,9 +232,43 @@ float4 PS(PS_IN IN) : SV_Target
         distance[j] = distance[j] / C;
     }
 
+    col = baseColor * (1 - m) + (d1 * distance[0] + d2 * distance[1]) * m;
 
-    col = bCol * (1 - m) + (d1Col * distance[0] + d2Col * distance[1]) * m;
-        return col;
+    return col;
+}
+
+float4 PS(PS_IN IN) : SV_Target
+{
+    float4 col;
+    int UVscale = 5;
+    float4 bCol = color_texture.Sample(colorMapSampler, IN.uv);
+    float4 d1Col = detail_map_r.Sample(detail_map_r_Sampler, IN.uv * UVscale);
+    float4 d2Col = detail_map_g.Sample(detail_map_g_Sampler, IN.uv * UVscale);
+    float4 normal = normalmap1.Sample(normalMapSampler, IN.uv * UVscale);
+    float4 rought = roughmap1.Sample(roughMapSampler, IN.uv * UVscale);
+    float specular = saturate(pow(0.7 - rought.x, 4) * 40);
+    specular = saturate(pow(1 - rought.x, 5));
+    
+    //normal
+
+    float3 diffuse = detailBlending(bCol, d1Col, d2Col).xyz;
+    float3 N = normal * 2.0f - 1.0f;
+    N = normalize(float3((N.xy + IN.nor.xy), IN.nor.z));
+    N = normalize(mul(N, (float3x3) world));
+    
+    float3 L = normalize(Lamp0Pos - mul(IN.pos , world).xyz);
+    float3 V = IN.viw;
+
+    float3 Hn = normalize(L + V);
+
+    float4 litV = lit(dot(L, N), dot(Hn, N), 5);
+    float3 D = litV.y * diffuse;
+    float3 S = litV.y * litV.z * specular * (diffuse * 0.5 + float3(1, 1, 1)*0.5);
+
+    col.xyz = D +S;
+    
+    col.w = 1;
+    return col;
 }
 
 struct vertex2pixel
