@@ -43,51 +43,8 @@ Texture2D<float4> color_texture <
 	string ResourceType = "2D";
     int Texcoord = 0;
 	int MapChannel = 1;
+    int UIOrder = 0;
 >;
-
-//detail map 
-
-
-float4 d1HSV <
-	string UIName = "detail map 1 color";
-	string UIWidget = "Color";
-> = float4(0.39f, 0.26f, 0.157f, 1.0f);
-
-Texture2D<float4> detail_map_r < 
-	string UIName = "detail map 1";
-	string ResourceType = "2D";
-    int Texcoord = 0;
-	int MapChannel = 1;
->;
-
-Texture2D<float4> normalmap1 < 
-	string UIName = "normal map 1";
-	string ResourceType = "2D";
-    int Texcoord = 0;
-	int MapChannel = 1;
->;
-
-Texture2D<float4> roughmap1 < 
-	string UIName = "roughness map";
-	string ResourceType = "2D";
-    int Texcoord = 0;
-	int MapChannel = 1;
->;
-
-
-//float3 d1HSV = detailC1.xyz; //red
-
-Texture2D<float4> detail_map_g < 
-	string UIName = "detail map 2";
-	string ResourceType = "2D";
-    int Texcoord = 0;
-	int MapChannel = 1;
->;
-
-float4 d2HSV <
-	string UIName = "detail map 2 color";
-	string UIWidget = "Color";
-> = float4(0.149f, 0.537f, 0.098f, 1.0f);
 
 //blending parameters
 int n <
@@ -95,6 +52,7 @@ int n <
 	string UIWidget = "slider";
 	float UIMin = 0.0f;
 	float UIMax = 50.0f;	
+    int UIOrder = 1;
 > = 8;
 
 float m <
@@ -102,7 +60,71 @@ float m <
 	string UIWidget = "slider";
 	float UIMin = 0.0f;
 	float UIMax = 1.0f;	
+    int UIOrder = 2;
 > = 0.0f;
+
+//detail 1
+
+float4 d1HSV <
+	string UIName = "d1";
+	string UIWidget = "Color";
+    int UIOrder = 3;
+> = float4(0.39f, 0.26f, 0.157f, 1.0f);
+
+Texture2D<float4> detail_map_r < 
+	string UIName = "d1 abedo";
+	string ResourceType = "2D";
+    int Texcoord = 0;
+	int MapChannel = 1;
+    int UIOrder = 4;
+>;
+
+Texture2D<float4> normalmap1 < 
+	string UIName = "d1 normal";
+	string ResourceType = "2D";
+    int Texcoord = 0;
+	int MapChannel = 1;
+    int UIOrder = 5;
+>;
+
+Texture2D<float4> roughmap1 < 
+	string UIName = "d1 rough";
+	string ResourceType = "2D";
+    int Texcoord = 0;
+	int MapChannel = 1;
+    int UIOrder = 6;
+>;
+
+//detail 2
+
+float4 d2HSV <
+	string UIName = "d2";
+	string UIWidget = "Color";
+    int UIOrder = 7;
+> = float4(0.149f, 0.537f, 0.098f, 1.0f);
+
+//float3 d1HSV = detailC1.xyz; //red
+
+Texture2D<float4> detail_map_g < 
+	string UIName = "d2 abedo";
+	string ResourceType = "2D";
+    int Texcoord = 0;
+	int MapChannel = 1;
+>;
+
+Texture2D<float4> normalmap2 < 
+	string UIName = "d2 normal";
+	string ResourceType = "2D";
+    int Texcoord = 0;
+	int MapChannel = 1;
+>;
+
+Texture2D<float4> roughmap2 < 
+	string UIName = "d2 rough";
+	string ResourceType = "2D";
+    int Texcoord = 0;
+	int MapChannel = 1;
+>;
 
 SamplerState colorMapSampler
 {
