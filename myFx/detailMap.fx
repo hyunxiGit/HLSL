@@ -31,13 +31,14 @@ Texture2D<float4> color_texture <
 	int MapChannel = 1;
 >;
 
-//detail map
+//detail map 
 Texture2D<float4> detail_map_r < 
 	string UIName = "detail map 1";
 	string ResourceType = "2D";
     int Texcoord = 0;
 	int MapChannel = 1;
 >;
+
 float3 d1HSV = float3(0, 1, 1); //red
 
 Texture2D<float4> detail_map_g < 
@@ -46,6 +47,7 @@ Texture2D<float4> detail_map_g <
     int Texcoord = 0;
 	int MapChannel = 1;
 >;
+
 float3 d2HSV = float3(0.333, 1, 1); //green
 
 SamplerState colorMapSampler
@@ -129,8 +131,35 @@ float4 PS(PS_IN IN) : SV_Target
     float4 bCol = color_texture.Sample(colorMapSampler, IN.uv);
     float4 d1Col = detail_map_r.Sample(detail_map_r_Sampler, IN.uv);
     float4 d2Col = detail_map_g.Sample(detail_map_g_Sampler, IN.uv);
-    col = bCol * 0.3 + d1Col * 0.3 + d2Col * 0.3;
-    return col;
+
+    float3 bHSV = RGBtoHSV(bCol.rgb);
+    //calculate distance 
+    int detailSize = 2;
+    float3 detailVec[2] = { d1HSV, d2HSV };
+    float distance[2] = { 0, 0 };
+    float C = 0;
+    
+    for (int i = 0; i < 2; i++)
+    {
+        float3 v;
+        v.x = bHSV.x - detailVec[i].x;
+        v.y = bHSV.y - detailVec[i].y;
+        v.z = bHSV.z - detailVec[i].z;
+
+        v.x = min(v.x, 1.0 - v.x);
+        float dis = 1.0f / pow(dot(v,v), 1);
+        distance[i] = dis;
+        C += dis;
+    }
+
+    for (int j = 0; j < 2; j++)
+    {
+        distance[j] = distance[j] / C;
+    }
+
+
+    col = bCol * 0.3 + d1Col * distance[0] + d2Col * distance[1];
+        return col;
 }
 
 struct vertex2pixel
