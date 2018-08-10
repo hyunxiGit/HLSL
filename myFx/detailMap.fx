@@ -39,7 +39,12 @@ Texture2D<float4> detail_map_r <
 	int MapChannel = 1;
 >;
 
-float3 d1HSV = float3(0, 1, 1); //red
+float4 d1HSV <
+	string UIName = "detail map 1 color";
+	string UIWidget = "Color";
+> = float4(0.39f, 0.26f, 0.157f, 1.0f);
+
+//float3 d1HSV = detailC1.xyz; //red
 
 Texture2D<float4> detail_map_g < 
 	string UIName = "detail map 2";
@@ -48,7 +53,24 @@ Texture2D<float4> detail_map_g <
 	int MapChannel = 1;
 >;
 
-float3 d2HSV = float3(0.333, 1, 1); //green
+float4 d2HSV <
+	string UIName = "detail map 2 color";
+	string UIWidget = "Color";
+> = float4(0.149f, 0.537f, 0.098f, 1.0f);
+
+int n <
+    string UIName = "blend power";
+	string UIWidget = "slider";
+	float UIMin = 0.0f;
+	float UIMax = 50.0f;	
+> = 8;
+
+float m <
+    string UIName = "blend strength";
+	string UIWidget = "slider";
+	float UIMin = 0.0f;
+	float UIMax = 1.0f;	
+> = 0.0f;
 
 SamplerState colorMapSampler
 {
@@ -129,13 +151,13 @@ float4 PS(PS_IN IN) : SV_Target
 {
     float4 col;
     float4 bCol = color_texture.Sample(colorMapSampler, IN.uv);
-    float4 d1Col = detail_map_r.Sample(detail_map_r_Sampler, IN.uv);
-    float4 d2Col = detail_map_g.Sample(detail_map_g_Sampler, IN.uv);
+    float4 d1Col = detail_map_r.Sample(detail_map_r_Sampler, IN.uv*5);
+    float4 d2Col = detail_map_g.Sample(detail_map_g_Sampler, IN.uv*5);
 
     float3 bHSV = RGBtoHSV(bCol.rgb);
     //calculate distance 
     int detailSize = 2;
-    float3 detailVec[2] = { d1HSV, d2HSV };
+    float3 detailVec[2] = { RGBtoHSV(d1HSV.xyz), RGBtoHSV(d2HSV.xyz) };
     float distance[2] = { 0, 0 };
     float C = 0;
     
@@ -147,7 +169,8 @@ float4 PS(PS_IN IN) : SV_Target
         v.z = bHSV.z - detailVec[i].z;
 
         v.x = min(v.x, 1.0 - v.x);
-        float dis = 1.0f / pow(dot(v,v), 1);
+
+        float dis = 1.0f / pow(dot(v,v), n);
         distance[i] = dis;
         C += dis;
     }
@@ -158,7 +181,7 @@ float4 PS(PS_IN IN) : SV_Target
     }
 
 
-    col = bCol * 0.3 + d1Col * distance[0] + d2Col * distance[1];
+    col = bCol * (1 - m) + (d1Col * distance[0] + d2Col * distance[1]) * m;
         return col;
 }
 
