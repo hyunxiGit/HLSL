@@ -1,6 +1,7 @@
 float4x4 wvp : WorldViewProjection;
 float4x4 viewI : ViewInverse;
 float4x4 world : WORLD;
+float4x4 worldI : WorldInverseTranspose;
 
 //#define DECLARE_SAMPLER_2D("Diffuse", _diffuseSampler, _diffuse_map, "default_c.png")
 
