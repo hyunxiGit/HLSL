@@ -1,4 +1,4 @@
-// this is a alpha test code 
+// this code include 2 alpha blending code sample 
 float4x4 wvp : WORLDVIEWPROJ <string UIWidget = "None";>;
 struct VS_Input
 {
