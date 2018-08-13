@@ -1,4 +1,7 @@
-#include "Common/Common.hlsli"
+float4x4 wvp : WorldViewProjection;
+float4x4 viewI : ViewInverse;
+float4x4 world : WORLD;
+float4x4 worldI : WorldInverseTranspose;
 
 float script : STANDARDSGLOBAL <
     string UIWidget = "none";
@@ -15,6 +18,21 @@ float3 Lamp0Pos : POSITION
     string Space = "World";
     int refID = 0;
 > = { -0.5f, 2.0f, 1.25f };
+
+TextureCube lightProjMap < 
+	string UIName = "cubemap";
+	string ResourceType = "CUBE";
+>;
+
+SamplerState lightProjSampler
+{
+    MinFilter = Linear;
+    MagFilter = Linear;
+    MipFilter = Linear;
+    AddressU = Clamp;
+    AddressV = Clamp;
+    AddressW = Clamp;
+};
 
 struct VS_IN
 {
@@ -43,9 +61,9 @@ PS_IN VS(VS_IN IN)
 float4 PS(PS_IN IN) : SV_Target
 {
     float4 COL = { 1, 0, 1, 1 };
-    float3 N = IN.n_w;
+    
+    
     float3 L = normalize(Lamp0Pos - IN.p_w);
-
     //light space 
     float3x3 M_lw;
     float3 l_normalized = normalize(Lamp0Pos);
@@ -53,9 +71,13 @@ float4 PS(PS_IN IN) : SV_Target
     M_lw[1] = float3(0, l_normalized.y, 0);
     M_lw[2] = float3(0, 0, l_normalized.z);
 
-    float3 N_L = mul(l_normalized, IN.n_w);
-    float3 L_L = mul(l_normalized, L);
-    COL.xyz = dot(N_L, L_L);
+    float3 N = mul(M_lw, IN.n_w);
+    L = mul(M_lw, L);
+
+    float3 L2 = normalize(mul(M_lw, normalize(IN.p_w - Lamp0Pos)));
+
+    float4 lightMap = lightProjMap.Sample(lightProjSampler, L2);
+    COL.xyz = lightMap * dot(N, L);
     return COL;
 }
 
