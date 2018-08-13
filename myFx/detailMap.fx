@@ -125,7 +125,7 @@ Texture2D<float4> d2aMap <
 	int MapChannel = 1;
 >;
 
-Texture2D<float4> normalmap2 < 
+Texture2D<float4> d2nMap < 
 	string UIName = "d2 normal";
 	string ResourceType = "2D";
     string name = D2_N; 
@@ -133,7 +133,7 @@ Texture2D<float4> normalmap2 <
 	int MapChannel = 1;
 >;
 
-Texture2D<float4> roughmap2 < 
+Texture2D<float4> d2rMap < 
 	string UIName = "d2 rough";
 	string ResourceType = "2D";
     string name = D2_R; 
@@ -142,6 +142,15 @@ Texture2D<float4> roughmap2 <
 >;
 
 SamplerState blendBaseSampler
+{
+    MinFilter = Linear;
+    MagFilter = Linear;
+    MipFilter = Linear;
+    AddressU = Wrap;
+    AddressV = Wrap;
+};
+
+SamplerState d1aMap_Sampler
 {
     MinFilter = Linear;
     MagFilter = Linear;
@@ -168,8 +177,7 @@ SamplerState d1rMap_Sampler
     AddressV = Wrap;
 };
 
-
-SamplerState d1aMap_Sampler
+SamplerState d2aMap_Sampler
 {
     MinFilter = Linear;
     MagFilter = Linear;
@@ -177,7 +185,17 @@ SamplerState d1aMap_Sampler
     AddressU = Wrap;
     AddressV = Wrap;
 };
-SamplerState d2aMap_Sampler
+
+SamplerState d2nMap_Sampler
+{
+    MinFilter = Linear;
+    MagFilter = Linear;
+    MipFilter = Linear;
+    AddressU = Wrap;
+    AddressV = Wrap;
+};
+
+SamplerState d2rMap_Sampler
 {
     MinFilter = Linear;
     MagFilter = Linear;
@@ -233,26 +251,39 @@ void getWeight(float4 baseColor, inout float weight [2])
 float4 PS(PS_IN IN) : SV_Target
 {
     float4 col;
+
+    //maps
     int UVscale = 5;
-    float4 bCol = blendBase.Sample(blendBaseSampler, IN.uv);
+    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);
     float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
     float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
     float4 d1_n= d1nMap.Sample(d1nMap_Sampler, IN.uv * UVscale);
+    float4 d2_n = d2nMap.Sample(d2nMap_Sampler, IN.uv * UVscale);
     float4 d1_r = d1rMap.Sample(d1rMap_Sampler, IN.uv * UVscale);
     float specular = saturate(pow(0.7 - d1_r.x, 4) * 40);
     specular = saturate(pow(1 - d1_r.x, 5));
     
     //get weight
     float weight[2] = { 0, 0 };
-    getWeight(bCol, weight);
+    getWeight(b_a, weight);
+    float blend0 = 1.0f - m;
+    float blend1 = m;
 
     //abedo
-    float3 diffuse = bCol * (1 - m) + (d1_a * weight[0] + d2_a * weight[1]) * m;
+    float3 diffuse = b_a * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
     
     //normal
-    float3 N = d1_n * 2.0f - 1.0f;
-    N = normalize(float3((N.xy + IN.nor.xy), IN.nor.z));
+    float3 b_n = IN.nor;
+    d1_n.xyz = d1_n.xyz * 2.0f - 1.0f;
+    d1_n.xyz = normalize(float3((d1_n.xy + b_n.xy), b_n.z));
+    d2_n.xyz = d2_n.xyz * 2.0f - 1.0f;
+    d2_n.xyz = normalize(float3((d2_n.xy + b_n.xy), b_n.z));
+    
+    float3 N = b_n * blend0 + (d1_n.xyz * weight[0] + d2_n.xyz * weight[1]) * blend1;
     N = normalize(mul(N, (float3x3) world));
+
+    //roughness
+
     
     float3 L = normalize(Lamp0Pos - mul(IN.pos , world).xyz);
     float3 V = IN.viw;
