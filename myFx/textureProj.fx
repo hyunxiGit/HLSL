@@ -77,7 +77,8 @@ float4 PS(PS_IN IN) : SV_Target
     float3 L2 = normalize(mul(M_lw, normalize(IN.p_w - Lamp0Pos)));
 
     float4 lightMap = lightProjMap.Sample(lightProjSampler, L2);
-    COL.xyz = lightMap * dot(N, L);
+    COL.xyz = saturate(lightMap * dot(N, L)) + float3(0.01f, 0.01f, 0.015f);
+    //COL.xyz = dot(N, L);
     return COL;
 }
 
