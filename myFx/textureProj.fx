@@ -1,7 +1,4 @@
-float4x4 wvp : WorldViewProjection;
-float4x4 viewI : ViewInverse;
-float4x4 world : WORLD;
-float4x4 worldI : WorldInverseTranspose;
+#include "Common/Common.hlsli"
 
 float script : STANDARDSGLOBAL <
     string UIWidget = "none";
@@ -11,20 +8,13 @@ float script : STANDARDSGLOBAL <
     string Script = "Technique = Main;";
 > = 0.8f;
 
-TextureCube cubeMap < 
-	string UIName = "cubemap";
-	string ResourceType = "CUBE";
->;
-
-SamplerState cubeMapSampler
-{
-    MinFilter = Linear;
-    MagFilter = Linear;
-    MipFilter = Linear;
-    AddressU = Clamp;
-    AddressV = Clamp;
-    AddressW = Clamp;
-};
+float3 Lamp0Pos : POSITION
+<   
+    string Object = "PointLight0";
+    string UIName = "Light Position";
+    string Space = "World";
+    int refID = 0;
+> = { -0.5f, 2.0f, 1.25f };
 
 struct VS_IN
 {
@@ -37,31 +27,36 @@ struct PS_IN
 {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
-    float3 nor_w : TEXCOORD1;
-    float3 view_w : TEXCOORD2;
+    float3 p_w : TEXCOORD1;
+    float3 n_w : TEXCOORD2;
 };
 
 PS_IN VS(VS_IN IN)
 {
     PS_IN OUT = (PS_IN) 0;
     OUT.pos = mul(IN.pos, wvp);
-    OUT.nor_w = mul(IN.nor, worldI);
-    float3 p_w = mul(IN.pos, world);
-    OUT.view_w = normalize(viewI[3].xyz - p_w);
+    OUT.p_w = mul(IN.pos, world);
+    OUT.n_w = normalize(mul(IN.nor, world));
     return OUT;
 }
-
-
 
 float4 PS(PS_IN IN) : SV_Target
 {
     float4 COL = { 1, 0, 1, 1 };
-   // float3 R = normalize(IN.view_w - 2 * dot(IN.view_w, IN.nor_w) * IN.nor_w);
-    float3 R = reflect(IN.view_w, IN.nor_w);
-    float3 reflection = cubeMap.Sample(cubeMapSampler, R.xyz);
-    COL.xyz = reflection;
-    return COL;
+    float3 N = IN.n_w;
+    float3 L = normalize(Lamp0Pos - IN.p_w);
 
+    //light space 
+    float3x3 M_lw;
+    float3 l_normalized = normalize(Lamp0Pos);
+    M_lw[0] = float3(l_normalized.x, 0, 0);
+    M_lw[1] = float3(0, l_normalized.y, 0);
+    M_lw[2] = float3(0, 0, l_normalized.z);
+
+    float3 N_L = mul(l_normalized, IN.n_w);
+    float3 L_L = mul(l_normalized, L);
+    COL.xyz = dot(N_L, L_L);
+    return COL;
 }
 
 fxgroup dx11

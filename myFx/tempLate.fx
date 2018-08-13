@@ -1,4 +1,7 @@
-#include "Common/Common.hlsli"
+float4x4 wvp : WorldViewProjection;
+float4x4 viewI : ViewInverse;
+float4x4 world : WORLD;
+float4x4 worldI : WorldInverseTranspose;
 
 float script : STANDARDSGLOBAL <
     string UIWidget = "none";
