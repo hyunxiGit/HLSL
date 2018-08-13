@@ -260,9 +260,8 @@ float4 PS(PS_IN IN) : SV_Target
     float4 d1_n= d1nMap.Sample(d1nMap_Sampler, IN.uv * UVscale);
     float4 d2_n = d2nMap.Sample(d2nMap_Sampler, IN.uv * UVscale);
     float4 d1_r = d1rMap.Sample(d1rMap_Sampler, IN.uv * UVscale);
-    float specular = saturate(pow(0.7 - d1_r.x, 4) * 40);
-    specular = saturate(pow(1 - d1_r.x, 5));
-    
+    float4 d2_r = d2rMap.Sample(d2rMap_Sampler, IN.uv * UVscale);
+
     //get weight
     float weight[2] = { 0, 0 };
     getWeight(b_a, weight);
@@ -281,10 +280,17 @@ float4 PS(PS_IN IN) : SV_Target
     
     float3 N = b_n * blend0 + (d1_n.xyz * weight[0] + d2_n.xyz * weight[1]) * blend1;
     N = normalize(mul(N, (float3x3) world));
+    //N = normalize(mul(b_n, (float3x3) world));
 
-    //roughness
+    //roughness 2 specular
+    float b_s = 0;
+    float p1 = 5.5f;
+    float p2 = 5;
+    float s1 = saturate(pow(1 - d1_r.x, p1));
+    float s2 = saturate(pow(1 - d2_r.x, p2));
+    float specular = b_s * blend0 + (s1 * weight[0] + s2 * weight[1]) * blend1;
 
-    
+    //lighting
     float3 L = normalize(Lamp0Pos - mul(IN.pos , world).xyz);
     float3 V = IN.viw;
 
@@ -294,7 +300,7 @@ float4 PS(PS_IN IN) : SV_Target
     float3 D = litV.y * diffuse;
     float3 S = litV.y * litV.z * specular * (diffuse * 0.5 + float3(1, 1, 1)*0.5);
 
-    col.xyz = D +S;
+    col.xyz = D;
     
     col.w = 1;
     return col;
