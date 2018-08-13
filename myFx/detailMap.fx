@@ -46,7 +46,7 @@ float3 Lamp0Pos : POSITION <
 
 //base map
 
-Texture2D<float4> color_texture < 
+Texture2D<float4> blendBase < 
 	string UIName = "Base Map";
     string name = BASE_A; 
 	string ResourceType = "2D";
@@ -80,7 +80,7 @@ float4 d1HSV <
     int UIOrder = 3;
 > = float4(0.39f, 0.26f, 0.157f, 1.0f);
 
-Texture2D<float4> detail_map_r < 
+Texture2D<float4> d1aMap < 
 	string UIName = "d1 abedo";
 	string ResourceType = "2D";
     string name = D1_A; 
@@ -89,7 +89,7 @@ Texture2D<float4> detail_map_r <
     int UIOrder = 4;
 >;
 
-Texture2D<float4> normalmap1 < 
+Texture2D<float4> d1nMap < 
 	string UIName = "d1 normal";
 	string ResourceType = "2D";
     string name = D1_N; 
@@ -98,7 +98,7 @@ Texture2D<float4> normalmap1 <
     int UIOrder = 5;
 >;
 
-Texture2D<float4> roughmap1 < 
+Texture2D<float4> d1rMap < 
 	string UIName = "d1 rough";
 	string ResourceType = "2D";
     string name = D1_R; 
@@ -117,7 +117,7 @@ float4 d2HSV <
 
 //float3 d1HSV = detailC1.xyz; //red
 
-Texture2D<float4> detail_map_g < 
+Texture2D<float4> d2aMap < 
 	string UIName = "d2 abedo";
 	string ResourceType = "2D";
     string name = D2_A; 
@@ -141,7 +141,7 @@ Texture2D<float4> roughmap2 <
 	int MapChannel = 1;
 >;
 
-SamplerState colorMapSampler
+SamplerState blendBaseSampler
 {
     MinFilter = Linear;
     MagFilter = Linear;
@@ -150,7 +150,7 @@ SamplerState colorMapSampler
     AddressV = Wrap;
 };
 
-SamplerState normalMapSampler
+SamplerState d1nMap_Sampler
 {
     MinFilter = Linear;
     MagFilter = Linear;
@@ -159,7 +159,7 @@ SamplerState normalMapSampler
     AddressV = Wrap;
 };
 
-SamplerState roughMapSampler
+SamplerState d1rMap_Sampler
 {
     MinFilter = Linear;
     MagFilter = Linear;
@@ -169,7 +169,7 @@ SamplerState roughMapSampler
 };
 
 
-SamplerState detail_map_r_Sampler
+SamplerState d1aMap_Sampler
 {
     MinFilter = Linear;
     MagFilter = Linear;
@@ -177,7 +177,7 @@ SamplerState detail_map_r_Sampler
     AddressU = Wrap;
     AddressV = Wrap;
 };
-SamplerState detail_map_g_Sampler
+SamplerState d2aMap_Sampler
 {
     MinFilter = Linear;
     MagFilter = Linear;
@@ -234,13 +234,13 @@ float4 PS(PS_IN IN) : SV_Target
 {
     float4 col;
     int UVscale = 5;
-    float4 bCol = color_texture.Sample(colorMapSampler, IN.uv);
-    float4 d1_a = detail_map_r.Sample(detail_map_r_Sampler, IN.uv * UVscale);
-    float4 d2_a = detail_map_g.Sample(detail_map_g_Sampler, IN.uv * UVscale);
-    float4 normal = normalmap1.Sample(normalMapSampler, IN.uv * UVscale);
-    float4 rought = roughmap1.Sample(roughMapSampler, IN.uv * UVscale);
-    float specular = saturate(pow(0.7 - rought.x, 4) * 40);
-    specular = saturate(pow(1 - rought.x, 5));
+    float4 bCol = blendBase.Sample(blendBaseSampler, IN.uv);
+    float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
+    float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
+    float4 d1_n= d1nMap.Sample(d1nMap_Sampler, IN.uv * UVscale);
+    float4 d1_r = d1rMap.Sample(d1rMap_Sampler, IN.uv * UVscale);
+    float specular = saturate(pow(0.7 - d1_r.x, 4) * 40);
+    specular = saturate(pow(1 - d1_r.x, 5));
     
     //get weight
     float weight[2] = { 0, 0 };
@@ -250,7 +250,7 @@ float4 PS(PS_IN IN) : SV_Target
     float3 diffuse = bCol * (1 - m) + (d1_a * weight[0] + d2_a * weight[1]) * m;
     
     //normal
-    float3 N = normal * 2.0f - 1.0f;
+    float3 N = d1_n * 2.0f - 1.0f;
     N = normalize(float3((N.xy + IN.nor.xy), IN.nor.z));
     N = normalize(mul(N, (float3x3) world));
     
