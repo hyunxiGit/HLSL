@@ -277,10 +277,8 @@ float4 PS(PS_IN IN) : SV_Target
     d1_n.xyz = normalize(float3((d1_n.xy + b_n.xy), b_n.z));
     d2_n.xyz = d2_n.xyz * 2.0f - 1.0f;
     d2_n.xyz = normalize(float3((d2_n.xy + b_n.xy), b_n.z));
-    
-    float3 N = b_n * blend0 + (d1_n.xyz * weight[0] + d2_n.xyz * weight[1]) * blend1;
-    N = normalize(mul(N, (float3x3) world));
-    //N = normalize(mul(b_n, (float3x3) world));
+
+    float3 N = float3(b_n.xy * blend0 + (d1_n.xy * weight[0] + d2_n.xy * weight[1]) * blend1, b_n.z);
 
     //roughness 2 specular
     float b_s = 0;
@@ -291,6 +289,7 @@ float4 PS(PS_IN IN) : SV_Target
     float specular = b_s * blend0 + (s1 * weight[0] + s2 * weight[1]) * blend1;
 
     //lighting
+    float3 A = float3(0.36f, 0.37f, 0.38f) *0.01;
     float3 L = normalize(Lamp0Pos - mul(IN.pos , world).xyz);
     float3 V = IN.viw;
 
@@ -300,8 +299,7 @@ float4 PS(PS_IN IN) : SV_Target
     float3 D = litV.y * diffuse;
     float3 S = litV.y * litV.z * specular * (diffuse * 0.5 + float3(1, 1, 1)*0.5);
 
-    col.xyz = D;
-    
+    col.xyz = A + D + S;
     col.w = 1;
     return col;
 }
