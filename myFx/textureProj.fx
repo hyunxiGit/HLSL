@@ -45,8 +45,8 @@ SamplerState projectMap2_Sampler
     MinFilter = Linear;
     MagFilter = Linear;
     MipFilter = Linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
+    AddressU = Clamp;
+    AddressV = Clamp;
 };
 
 struct VS_IN
@@ -110,23 +110,32 @@ float4 PS(PS_IN IN) : SV_Target
 
     lightMap = float4(1, 1, 1, 1);
 
+    float f = 10;
+    float n = 0.000000001f;
     //projection matrix
-    float f = 16666;
-    float n = 0.00001f;
-    float Q1 = -(f + n) / (f - n);
-    float Q2 = -2*f*n / (f - n);
+    float w = 0.5774f;
+    float h = 0.5774f;
+    float a = f / (f-n);
+    float b = (-n*f) / (f - n);
 
     float4x4 proj;
-    proj[0] = float4(0.577f, 0, 0, 0);
-    proj[1] = float4(0, 0.577f, 0, 0);
-    proj[2] = float4(0, 0, Q1, Q2);
-    proj[3] = float4(0, 0, -1, 0);
+    proj[0] = float4(w, 0, 0, 0);
+    proj[1] = float4(0, h, 0, 0);
+    proj[2] = float4(0, 0, a, 1);
+    proj[3] = float4(0, 0, b, 0);
 
-    float4 L_proj = mul(float4(L2, -L2.z), proj);
-    
+    float3 p_l = mul(M_lw , IN.p_w);
 
+    float4 L_proj = mul(float4(p_l, - p_l.z), proj);
+
+    float2 uv = L_proj.xy / L_proj.z;
+
+    uv = (uv + float2(1,1)) * float2(0.5, -0.5);
+
+    lightMap = projectMap2.Sample(projectMap2_Sampler, uv);
 
     COL.xyz = saturate(lightMap * dot(N, L)) * att_r * attCon + float3(0.01f, 0.01f, 0.015f);
+    //COL.xyz = lightMap.xyz;
     //COL.xyz = dot(N, L);
     return COL;
 }
