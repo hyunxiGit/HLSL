@@ -1,5 +1,5 @@
 #include "Common/Common.hlsli"
-#define BASE_A "D:/work/HLSL/texture/blendBase.tga"
+#define BASE_A "D:/work/HLSL/texture/blendBase.png"
 //d1
 #define D1_A "D:/work/HLSL/texture/earth_a.jpg"
 #define D1_N "D:/work/HLSL/texture/earth_n.jpg"
@@ -78,7 +78,7 @@ float4 d1HSV <
 	string UIName = "d1";
 	string UIWidget = "Color";
     int UIOrder = 3;
-> = float4(0.39f, 0.26f, 0.157f, 1.0f);
+> = float4(0.31f, 0.35f, 0.157f, 1.0f);
 
 Texture2D<float4> d1aMap < 
 	string UIName = "d1 abedo";
@@ -113,7 +113,7 @@ float4 d2HSV <
 	string UIName = "d2";
 	string UIWidget = "Color";
     int UIOrder = 7;
-> = float4(0.149f, 0.537f, 0.098f, 1.0f);
+> = float4(0.23f, 0.46f, 0.12f, 1.0f);
 
 //float3 d1HSV = detailC1.xyz; //red
 
