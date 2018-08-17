@@ -1,5 +1,10 @@
 .vs/
-fxProject/
+fxProject/CgFX/
+fxProject/docs/
+fxProject/textures/
+fxProject/videos/
+fxProject/Document1.dae
+fxProject/HLSLTest.fxcproj
 max/
 playground/playground1/.vs/
 playground/playground1/Debug/
