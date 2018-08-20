@@ -3,6 +3,37 @@ float4x4 viewI : ViewInverse;
 float4x4 world : WORLD;
 float4x4 worldI : WorldInverseTranspose;
 
+#define TEXTURE2D(TexName, SampName, filename, uiName )\
+Texture2D<float4> TexName <\
+	string UIName = (uiName);\
+    string name = (filename);\
+	string ResourceType = "2D";\
+    int Texcoord = 0;\
+	int MapChannel = 1;\
+>;\
+SamplerState SampName\
+{\
+    MinFilter = Linear;\
+    MagFilter = Linear;\
+    MipFilter = Linear;\
+    AddressU = Wrap;\
+    AddressV = Wrap;\
+};
+
+#define DECLARE_SIZED_QUAD_TEX(TexName,SampName,PixFmt,Multiple) texture TexName : RENDERCOLORTARGET < \
+    float2 ViewPortRatio = {Multiple,Multiple}; \
+    int MipLevels = 1; \
+    string Format = PixFmt ; \
+    string UIWidget = (TARGETWIDGET); \
+>; \
+sampler2D SampName = sampler_state { \
+    texture = <TexName>; \
+    AddressU = Clamp; \
+    AddressV = Clamp; \
+    MagFilter = Linear; \
+    MinFilter = Linear; \
+    MipFilter = Point; };
+
 //#define DECLARE_SAMPLER_2D("Diffuse", _diffuseSampler, _diffuse_map, "default_c.png")
 
 float3 RGBtoHSV(float3 RGB)
