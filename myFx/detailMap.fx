@@ -19,21 +19,6 @@ float Script : STANDARDSGLOBAL <
     string Script = "Technique=Main;";
 > = 0.8;
 
-struct VS_IN
-{
-    float4 pos : POSITION;
-    float2 uv : TEXCOORD0;
-    float3 nor : NORMAL;
-};
-
-struct PS_IN
-{
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
-    float3 viw : TEXCOORD2;
-    float3 nor : TEXCOORD3;
-};
-
 //ui elements
 //lights
 
@@ -78,7 +63,7 @@ float4 d1HSV <
 	string UIName = "d1";
 	string UIWidget = "Color";
     int UIOrder = 3;
-> = float4(0.31f, 0.35f, 0.157f, 1.0f);
+> = float4(0.299f, 0.206f, 0.12f, 1.0f);
 
 Texture2D<float4> d1aMap < 
 	string UIName = "d1 abedo";
@@ -204,14 +189,35 @@ SamplerState d2rMap_Sampler
     AddressV = Wrap;
 };
 
+struct VS_IN
+{
+    float4 pos : POSITION;
+    float2 uv : TEXCOORD0;
+    float3 nor : NORMAL;
+    float4 col : COLOR;
+};
+
+struct PS_IN
+{
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+    float4 p_w : TEXCOORD1;
+    float3 viw : TEXCOORD2;
+    float3 nor : TEXCOORD3;
+    float3 col : TEXCOORD4;
+};
+
+
 PS_IN VS(VS_IN IN)
 {
     PS_IN OUT = (PS_IN) 0;
     float3 pw = mul(IN.pos, world).xyz;
     OUT.pos = mul(IN.pos, wvp);
+    OUT.p_w = mul(IN.pos, world);
     OUT.uv = IN.uv;
     OUT.viw.xyz = normalize((viewI[3].xyz - pw).xyz);
     OUT.nor = IN.nor;
+    OUT.col = IN.col;
     return (OUT);
 }
 
@@ -273,12 +279,26 @@ float4 PS(PS_IN IN) : SV_Target
     
     //normal
     float3 b_n = IN.nor;
+
+    d1_n.xyz = d1_n.xyz * 2.0f - 1.0f; 
+    d1_n.xyz = normalize(float3((d1_n.xy * weight[0] + b_n.xy), b_n.z));
+    d2_n.xyz = d2_n.xyz * 2.0f - 1.0f;
+    d2_n.xyz = normalize(float3((d2_n.xy * weight[1] + b_n.xy), b_n.z));
+
+
+    float3 N = normalize(float3(b_n.xy * blend0 + (d1_n.xy + d2_n.xy ) * blend1, b_n.z));
+    N = mul(N, (float3x3) world);
+    /*
     d1_n.xyz = d1_n.xyz * 2.0f - 1.0f;
+    
+    
     d1_n.xyz = normalize(float3((d1_n.xy + b_n.xy), b_n.z));
     d2_n.xyz = d2_n.xyz * 2.0f - 1.0f;
     d2_n.xyz = normalize(float3((d2_n.xy + b_n.xy), b_n.z));
 
-    float3 N = float3(b_n.xy * blend0 + (d1_n.xy * weight[0] + d2_n.xy * weight[1]) * blend1, b_n.z);
+    float3 N = normalize(float3(b_n.xy * blend0 + (d1_n.xy * weight[0] + d2_n.xy * weight[1]) * blend1, b_n.z));
+    N = mul(N, (float3x3) world);
+    */
 
     //roughness 2 specular
     float b_s = 0;
@@ -289,8 +309,8 @@ float4 PS(PS_IN IN) : SV_Target
     float specular = b_s * blend0 + (s1 * weight[0] + s2 * weight[1]) * blend1;
 
     //lighting
-    float3 A = float3(0.36f, 0.37f, 0.38f) *0.01;
-    float3 L = normalize(Lamp0Pos - mul(IN.pos , world).xyz);
+    float3 A = float3(0.36f, 0.37f, 0.38f) *0.02;
+    float3 L = normalize(Lamp0Pos - IN.p_w);
     float3 V = IN.viw;
 
     float3 Hn = normalize(L + V);
@@ -299,7 +319,7 @@ float4 PS(PS_IN IN) : SV_Target
     float3 D = litV.y * diffuse;
     float3 S = litV.y * litV.z * specular * (diffuse * 0.5 + float3(1, 1, 1)*0.5);
 
-    col.xyz = A + D + S;
+    col.xyz = D + S + A;
     col.w = 1;
     return col;
 }
