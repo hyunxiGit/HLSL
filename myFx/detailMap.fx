@@ -9,17 +9,9 @@
 #define D2_N "D:/work/HLSL/texture/grass_n.jpg"
 #define D2_R "D:/work/HLSL/texture/grass_r.jpg"
 
-string ParamID = "0x003";
 
-float Script : STANDARDSGLOBAL <
-    string UIWidget = "none";
-    string ScriptClass = "object";
-    string ScriptOrder = "standard";
-    string ScriptOutput = "color";
-    string Script = "Technique=Main;";
-> = 0.8;
+SCRIPT_FX("Technique=Main;")
 
-//ui elements
 //lights
 
 float3 Lamp0Pos : POSITION <
@@ -30,164 +22,23 @@ float3 Lamp0Pos : POSITION <
 > = { -0.5f, 2.0f, 1.25f };
 
 //base map
-
-Texture2D<float4> blendBase < 
-	string UIName = "Base Map";
-    string name = BASE_A; 
-	string ResourceType = "2D";
-    int Texcoord = 0;
-	int MapChannel = 1;
-    int UIOrder = 0;
->;
+TEXTURE2D(blendBase, blendBaseSampler, BASE_A, "Base Map",0)
 
 //blending parameters
-int n <
-    string UIName = "blend power";
-	string UIWidget = "slider";
-	float UIMin = 0.0f;
-	float UIMax = 50.0f;	
-    int UIOrder = 1;
-> = 8;
-
-float m <
-    string UIName = "blend strength";
-	string UIWidget = "slider";
-	float UIMin = 0.0f;
-	float UIMax = 1.0f;	
-    int UIOrder = 2;
-> = 0.0f;
+FLOATUI(n, 0.0f, 15.0f, 8, "blend power", 1)
+FLOATUI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 
 //detail 1
-
-float4 d1HSV <
-	string UIName = "d1";
-	string UIWidget = "Color";
-    int UIOrder = 3;
-> = float4(0.299f, 0.206f, 0.12f, 1.0f);
-
-Texture2D<float4> d1aMap < 
-	string UIName = "d1 abedo";
-	string ResourceType = "2D";
-    string name = D1_A; 
-    int Texcoord = 0;
-	int MapChannel = 1;
-    int UIOrder = 4;
->;
-
-Texture2D<float4> d1nMap < 
-	string UIName = "d1 normal";
-	string ResourceType = "2D";
-    string name = D1_N; 
-    int Texcoord = 0;
-	int MapChannel = 1;
-    int UIOrder = 5;
->;
-
-Texture2D<float4> d1rMap < 
-	string UIName = "d1 rough";
-	string ResourceType = "2D";
-    string name = D1_R; 
-    int Texcoord = 0;
-	int MapChannel = 1;
-    int UIOrder = 6;
->;
+COLORS(d1HSV,float4(0.299f, 0.206f, 0.12f, 1.0f),"d1",3)
+TEXTURE2D(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 4)
+TEXTURE2D(d1nMap, d1nMap_Sampler, D1_N, "d1 normal", 5)
+TEXTURE2D(d1rMap, d1rMap_Sampler, D1_R, "d1 rough", 6)
 
 //detail 2
-
-float4 d2HSV <
-	string UIName = "d2";
-	string UIWidget = "Color";
-    int UIOrder = 7;
-> = float4(0.23f, 0.46f, 0.12f, 1.0f);
-
-//float3 d1HSV = detailC1.xyz; //red
-
-Texture2D<float4> d2aMap < 
-	string UIName = "d2 abedo";
-	string ResourceType = "2D";
-    string name = D2_A; 
-    int Texcoord = 0;
-	int MapChannel = 1;
->;
-
-Texture2D<float4> d2nMap < 
-	string UIName = "d2 normal";
-	string ResourceType = "2D";
-    string name = D2_N; 
-    int Texcoord = 0;
-	int MapChannel = 1;
->;
-
-Texture2D<float4> d2rMap < 
-	string UIName = "d2 rough";
-	string ResourceType = "2D";
-    string name = D2_R; 
-    int Texcoord = 0;
-	int MapChannel = 1;
->;
-
-SamplerState blendBaseSampler
-{
-    MinFilter = Linear;
-    MagFilter = Linear;
-    MipFilter = Linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-SamplerState d1aMap_Sampler
-{
-    MinFilter = Linear;
-    MagFilter = Linear;
-    MipFilter = Linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-SamplerState d1nMap_Sampler
-{
-    MinFilter = Linear;
-    MagFilter = Linear;
-    MipFilter = Linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-SamplerState d1rMap_Sampler
-{
-    MinFilter = Linear;
-    MagFilter = Linear;
-    MipFilter = Linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-SamplerState d2aMap_Sampler
-{
-    MinFilter = Linear;
-    MagFilter = Linear;
-    MipFilter = Linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-SamplerState d2nMap_Sampler
-{
-    MinFilter = Linear;
-    MagFilter = Linear;
-    MipFilter = Linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-SamplerState d2rMap_Sampler
-{
-    MinFilter = Linear;
-    MagFilter = Linear;
-    MipFilter = Linear;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
+COLORS(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 7)
+TEXTURE2D(d2aMap, d2aMap_Sampler, D2_A, "d2 abedo", 8)
+TEXTURE2D(d2nMap, d2nMap_Sampler, D2_N, "d2 normal", 9)
+TEXTURE2D(d2rMap, d2rMap_Sampler, D2_R, "d2 rough", 10)
 
 struct VS_IN
 {
@@ -225,7 +76,6 @@ PS_IN VS(VS_IN IN)
 void getWeight(float4 baseColor, inout float weight [2])
 {
     float4 col;
-
     float3 bHSV = RGBtoHSV(baseColor.rgb);
 
     //calculate distance 
@@ -271,6 +121,7 @@ float4 PS(PS_IN IN) : SV_Target
     //get weight
     float weight[2] = { 0, 0 };
     getWeight(b_a, weight);
+    m = m * IN.col.r;
     float blend0 = 1.0f - m;
     float blend1 = m;
 
@@ -279,26 +130,12 @@ float4 PS(PS_IN IN) : SV_Target
     
     //normal
     float3 b_n = IN.nor;
-
     d1_n.xyz = d1_n.xyz * 2.0f - 1.0f; 
     d1_n.xyz = normalize(float3((d1_n.xy * weight[0] + b_n.xy), b_n.z));
     d2_n.xyz = d2_n.xyz * 2.0f - 1.0f;
     d2_n.xyz = normalize(float3((d2_n.xy * weight[1] + b_n.xy), b_n.z));
-
-
     float3 N = normalize(float3(b_n.xy * blend0 + (d1_n.xy + d2_n.xy ) * blend1, b_n.z));
     N = mul(N, (float3x3) world);
-    /*
-    d1_n.xyz = d1_n.xyz * 2.0f - 1.0f;
-    
-    
-    d1_n.xyz = normalize(float3((d1_n.xy + b_n.xy), b_n.z));
-    d2_n.xyz = d2_n.xyz * 2.0f - 1.0f;
-    d2_n.xyz = normalize(float3((d2_n.xy + b_n.xy), b_n.z));
-
-    float3 N = normalize(float3(b_n.xy * blend0 + (d1_n.xy * weight[0] + d2_n.xy * weight[1]) * blend1, b_n.z));
-    N = mul(N, (float3x3) world);
-    */
 
     //roughness 2 specular
     float b_s = 0;

@@ -3,11 +3,36 @@ float4x4 viewI : ViewInverse;
 float4x4 world : WORLD;
 float4x4 worldI : WorldInverseTranspose;
 
-#define TEXTURE2D(TexName, SampName, filename, uiName )\
+#define SCRIPT_FX(usetechnique) float Script : STANDARDSGLOBAL <\
+string UIWidget = "none";\
+string ScriptClass = "object";\
+string ScriptOrder = "standard";\
+string ScriptOutput = "color";\
+string Script = (usetechnique);\
+> = 0.8;\
+string ParamID = "0x003";
+
+#define FLOATUI(name ,uiMin, uiMax,defaultV, uiName, uiOrder) float name <\
+    string UIName = (uiName);\
+	string UIWidget = "slider";\
+    float UIMin = (uiMin);\
+    float UIMax = (uiMax);\
+    int UIOrder = (uiOrder);\
+> = (defaultV);
+
+#define COLORS(name, value , uiName, uiOrder)\
+float4 name <\
+string UIName = (uiName);\
+string UIWidget = "Color";\
+int UIOrder = (uiOrder);\
+> = (value);
+
+#define TEXTURE2D(TexName, SampName, filename, uiName , uIOrder)\
 Texture2D<float4> TexName <\
 	string UIName = (uiName);\
     string name = (filename);\
 	string ResourceType = "2D";\
+    int UIOrder = (uIOrder);\
     int Texcoord = 0;\
 	int MapChannel = 1;\
 >;\
