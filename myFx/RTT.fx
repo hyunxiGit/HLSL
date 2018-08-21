@@ -103,10 +103,11 @@ technique11 Main_11 <
     {
         SetVertexShader(CompileShader(vs_5_0, VS()));
         SetGeometryShader(NULL);
-
-        SetRasterizerState(DisableCulling);
-        SetDepthStencilState(DepthEnabling, 0);
-        SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
+        
+        //these are not must have but used in deffer render ,need to check meaning
+        //SetRasterizerState(DisableCulling);
+        //SetDepthStencilState(DepthEnabling, 0);
+        //SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
 
         SetPixelShader(CompileShader(ps_5_0, PS1()));
     }
@@ -121,10 +122,11 @@ technique11 Main_11 <
     {
         SetVertexShader(CompileShader(vs_5_0, ScreenQuadVS2(float2(0,0))));
         SetGeometryShader(NULL);
-
-        SetRasterizerState(DisableCulling);
-        SetDepthStencilState(DepthDisabling, 0);
-        SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
+        
+        //these are not must have but used in deffer render ,need to check meaning
+        //SetRasterizerState(DisableCulling);
+        //SetDepthStencilState(DepthDisabling, 0);
+        //SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
 
         SetPixelShader(CompileShader(ps_5_0, PS2()));
     }
