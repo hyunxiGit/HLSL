@@ -1,15 +1,6 @@
-float4x4 wvp : WorldViewProjection;
-float4x4 viewI : ViewInverse;
-float4x4 world : WORLD;
-float4x4 worldI : WorldInverseTranspose;
+#include "Common/Common.hlsli"
 
-float script : STANDARDSGLOBAL <
-    string UIWidget = "none";
-    string ScriptClass = "object";
-    string ScriptOrder = "standard";
-    string ScriptOutput = "color";
-    string Script = "Technique = Main;";
-> = 0.8f;
+SCRIPT_FX("Technique=Main_11;")
 
 struct VS_IN
 {
