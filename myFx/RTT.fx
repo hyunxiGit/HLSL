@@ -62,12 +62,12 @@ PS_IN VS(VS_IN IN)
     return OUT;
 }
 
-void PS1(PS_IN IN, out float4 NormalOutput : COLOR0)
+void PS1(PS_IN IN, out float4 NormalOutput : SV_Target0)
 { 
     NormalOutput = float4(vector_to_texture(IN.nor), 1);
 }
 
-float4 PS2(QuadVertexOutput IN) : COLOR
+float4 PS2(QuadVertexOutput IN) : SV_Target
 {
     float4 COL ;
     COL = texRTT.Sample(SampRTT, IN.UV);
