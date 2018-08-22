@@ -16,7 +16,6 @@ Texture2D<float4> texRTT : RENDERCOLORTARGET
     int Texcoord = 0;
 	int MapChannel = 1;
 >;
-
 SamplerState SampRTT
 {
     AddressU = Wrap;
@@ -76,14 +75,14 @@ float4 PS2(QuadVertexOutput IN) : SV_Target
     return COL;
 }
 
-RasterizerState DisableCulling{CullMode = NONE;};
-DepthStencilState DepthEnabling { DepthEnable = TRUE; };
-BlendState DisableBlend { BlendEnable[0] = FALSE; };
-DepthStencilState DepthDisabling
+//RasterizerState DisableCulling{CullMode = NONE;};
+//DepthStencilState DepthEnabling { DepthEnable = TRUE; };
+//BlendState DisableBlend { BlendEnable[0] = FALSE; };
+/*DepthStencilState DepthDisabling
 {
     DepthEnable = FALSE;
     DepthWriteMask = ZERO;
-};
+};*/
 
 fxgroup dx11
 {
