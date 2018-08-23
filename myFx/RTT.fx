@@ -1,32 +1,19 @@
 #include "Common/Common.hlsli"
+#define BASE_A "D:/work/HLSL/texture/blendBase.png"
 
 SCRIPT_FX("Technique=Main_11;")
+
 float3 vector_to_texture(float3 v) { return ((v * 0.5) + float3(0.5, 0.5, 0.5));}
 float3 texture_to_vector(float3 t) { return ((t - float3(0.5, 0.5, 0.5)) * 2.0);}
+
+TEXTURE2D(blendBase, blendBaseSampler, "D:/work/HLSL/texture/blendBase.png", "Base Map", 0)
 
 float QuadTexOffset <
     string UIName="Texel Alignment Offset";
     string UIWidget="None";
 > = 0.5;
 
-Texture2D<float4> texRTT : RENDERCOLORTARGET
-<
-    float2 ViewPortRatio = {1,1}; 
-	string ResourceType = "2D";
-    int Texcoord = 0;
-	int MapChannel = 1;
->;
-SamplerState SampRTT
-{
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-struct VS_IN
-{
-    float4 pos : POSITION;
-    float3 nor : NORMAL;
-    float2 uv : TEXCOORD0;
-};
+
 
 struct QuadVertexOutput
 {
@@ -46,6 +33,14 @@ QuadVertexOutput ScreenQuadVS2(
     return OUT;
 }
 
+
+struct VS_IN
+{
+    float4 pos : POSITION;
+    float3 nor : NORMAL;
+    float2 uv : TEXCOORD0;
+};
+
 struct PS_IN
 {
     float4 pos : SV_POSITION;
@@ -58,31 +53,50 @@ PS_IN VS(VS_IN IN)
     PS_IN OUT = (PS_IN) 0;
     OUT.pos = mul(IN.pos, wvp);
     OUT.nor = normalize(mul(IN.nor, (float3x3) world));
+    OUT.uv = IN.uv;
     return OUT;
 }
 
-void PS1(PS_IN IN, out float4 NormalOutput : SV_Target0)
-{ 
-    NormalOutput = float4(vector_to_texture(IN.nor), 1);
+RENDERTARGET(norRTT, norRTTSamp, 1, 1)
+RENDERTARGET(abeRTT, abeSampRTT, 1, 1)
+//struct G_BUFF
+//{
+//    float4 nor_g : SV_Target0;
+//    float4 abe_g : SV_Target1;
+//};
+
+//G_BUFF PS1(PS_IN IN)
+//{ 
+//    G_BUFF OUT;
+//    OUT.abe_g = abeRTT.Sample(abeSampRTT, IN.uv);
+//    OUT.nor_g = float4(vector_to_texture(IN.nor), 1);
+//    return OUT;
+//}
+
+void PS1(PS_IN IN, out float4 abe_g : SV_Target0, out float4 nor_g : SV_Target1)
+{
+    abe_g = abeRTT.Sample(abeSampRTT, IN.uv);
+    nor_g = float4(vector_to_texture(IN.nor), 1);
 }
 
 float4 PS2(QuadVertexOutput IN) : SV_Target
 {
     float4 COL ;
-    COL = texRTT.Sample(SampRTT, IN.UV);
-    //COL = float4(1, 0, 0, 1);
+    //float4 nor = norRTT.Sample(norRTTSamp, IN.UV);
+    COL = abeRTT.Sample(abeSampRTT, IN.UV);
+    COL = float4(1, 0, 0, 1);
     COL.a = 1;
     return COL;
 }
 
-//RasterizerState DisableCulling{CullMode = NONE;};
-//DepthStencilState DepthEnabling { DepthEnable = TRUE; };
-//BlendState DisableBlend { BlendEnable[0] = FALSE; };
-/*DepthStencilState DepthDisabling
+RasterizerState DisableCulling{CullMode = NONE;};
+DepthStencilState DepthEnabling { DepthEnable = TRUE; };
+BlendState DisableBlend { BlendEnable[0] = FALSE; };
+DepthStencilState DepthDisabling
 {
     DepthEnable = FALSE;
     DepthWriteMask = ZERO;
-};*/
+};
 
 fxgroup dx11
 {
@@ -94,7 +108,9 @@ technique11 Main_11 <
 {
     pass p0 <
 	string Script = 
-                "RenderColorTarget0 = texRTT;"
+                "SV_Target0 = abeRTT"
+                "RenderColorTarget0 = norRTT;"
+                "RenderColorTarget1 = abeRTT;"
                 "ClearSetColor = gClearColor;"
                 "Clear=Color0;"
                 "Draw = geometry;";
@@ -104,9 +120,9 @@ technique11 Main_11 <
         SetGeometryShader(NULL);
         
         //these are not must have but used in deffer render ,need to check meaning
-        //SetRasterizerState(DisableCulling);
-        //SetDepthStencilState(DepthEnabling, 0);
-        //SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
+        SetRasterizerState(DisableCulling);
+        SetDepthStencilState(DepthEnabling, 0);
+        SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
 
         SetPixelShader(CompileShader(ps_5_0, PS1()));
     }
@@ -123,9 +139,9 @@ technique11 Main_11 <
         SetGeometryShader(NULL);
         
         //these are not must have but used in deffer render ,need to check meaning
-        //SetRasterizerState(DisableCulling);
-        //SetDepthStencilState(DepthDisabling, 0);
-        //SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
+        SetRasterizerState(DisableCulling);
+        SetDepthStencilState(DepthDisabling, 0);
+        SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
 
         SetPixelShader(CompileShader(ps_5_0, PS2()));
     }

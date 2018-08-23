@@ -27,6 +27,19 @@ string UIWidget = "Color";\
 int UIOrder = (uiOrder);\
 > = (value);
 
+#define TEXTURE2DNO(TextName , SampName) \
+Texture2D<float4> TextName <\
+	string ResourceType = "2D";\
+    int Texcoord = 0;\
+	int MapChannel = 1;\
+>;\
+SamplerState SampName\
+{\
+    Filter = MIN_MAG_MIP_LINEAR;\
+    AddressU = Wrap;\
+    AddressV = Wrap;\
+};
+
 #define TEXTURE2D(TexName, SampName, filename, uiName , uIOrder)\
 Texture2D<float4> TexName <\
 	string UIName = (uiName);\
@@ -38,9 +51,20 @@ Texture2D<float4> TexName <\
 >;\
 SamplerState SampName\
 {\
-    MinFilter = Linear;\
-    MagFilter = Linear;\
-    MipFilter = Linear;\
+    Filter = MIN_MAG_MIP_LINEAR;\
+    AddressU = Wrap;\
+    AddressV = Wrap;\
+};
+
+#define RENDERTARGET(TexName,SampName, r_x, r_y) Texture2D<float4> TexName : RENDERCOLORTARGET\
+<\
+    float2 ViewPortRatio = {r_x,r_y}; \
+	string ResourceType = "2D";\
+    int Texcoord = 0;\
+	int MapChannel = 1;\
+>;\
+SamplerState SampName\
+{\
     AddressU = Wrap;\
     AddressV = Wrap;\
 };
