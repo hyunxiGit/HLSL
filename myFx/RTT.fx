@@ -3,9 +3,6 @@
 
 SCRIPT_FX("Technique=Main_11;")
 
-float3 vector_to_texture(float3 v) { return ((v * 0.5) + float3(0.5, 0.5, 0.5));}
-float3 texture_to_vector(float3 t) { return ((t - float3(0.5, 0.5, 0.5)) * 2.0);}
-
 TEXTURE2D(blendBase, blendBaseSampler, "D:/work/HLSL/texture/blendBase.png", "Base Map", 0)
 
 float QuadTexOffset <
@@ -14,15 +11,28 @@ float QuadTexOffset <
 > = 0.5;
 
 
-
 struct QuadVertexOutput
 {
-    float4 Position : POSITION;
+    float4 Position : SV_POSITION;
     float2 UV : TEXCOORD0;
 };
+//these are the way to create screen quad from Vertex ID... all red by now
+//struct VertexOut
+//{
+//    float4 PosH     : SV_POSITION;
+//    float2 Tex      : TEXCOORD;
+//};
+
+//VertexOut VS0(uint id : SV_VertexId)
+//{
+//    VertexOut vout;
+//    vout.Tex = float2(id % 2, (id % 4) >> 1);
+//    vout.PosH = float4((vout.Tex.x - 0.5f) * 2, -(vout.Tex.y - 0.5f) * 2, 0, 1);
+//    return vout;
+//}
 
 QuadVertexOutput ScreenQuadVS2(
-    float3 Position : POSITION,
+    float3 Position : SV_POSITION,
     float3 TexCoord : TEXCOORD0,
     uniform float2 TexelOffsets
 )
@@ -57,29 +67,24 @@ PS_IN VS(VS_IN IN)
     return OUT;
 }
 
-RENDERTARGET(norRTT, norRTTSamp, 1, 1)
-RENDERTARGET(abeRTT, abeSampRTT, 1, 1)
-//struct G_BUFF
-//{
-//    float4 nor_g : SV_Target0;
-//    float4 abe_g : SV_Target1;
-//};
+RENDERTARGET(norRTT, norRTTSamp, 1, 1, "A16B16G16R16")
+RENDERTARGET(abeRTT, abeSampRTT, 1, 1, "A16B16G16R16")
 
-//G_BUFF PS1(PS_IN IN)
-//{ 
-//    G_BUFF OUT;
-//    OUT.abe_g = abeRTT.Sample(abeSampRTT, IN.uv);
-//    OUT.nor_g = float4(vector_to_texture(IN.nor), 1);
-//    return OUT;
-//}
-
-void PS1(PS_IN IN, out float4 abe_g : SV_Target0, out float4 nor_g : SV_Target1)
+struct G_BUFF
 {
-    abe_g = abeRTT.Sample(abeSampRTT, IN.uv);
-    nor_g = float4(vector_to_texture(IN.nor), 1);
+    float4 abe_g : SV_Target0;
+    float4 nor_g : SV_Target1;
+};
+
+G_BUFF prepreMRT(PS_IN IN)
+{
+    G_BUFF OUT;
+    OUT.abe_g = blendBase.Sample(blendBaseSampler, IN.uv);
+    OUT.nor_g = float4(vector_to_texture(IN.nor), 1);
+    return OUT;
 }
 
-float4 PS2(QuadVertexOutput IN) : SV_Target
+float4 useMRT(QuadVertexOutput IN) : SV_Target
 {
     float4 COL ;
     //float4 nor = norRTT.Sample(norRTTSamp, IN.UV);
@@ -112,7 +117,8 @@ technique11 Main_11 <
                 "RenderColorTarget0 = norRTT;"
                 "RenderColorTarget1 = abeRTT;"
                 "ClearSetColor = gClearColor;"
-                "Clear=Color0;"
+                "Clear=SV_Target0;"
+                "Clear=SV_Target1;"
                 "Draw = geometry;";
     >
     {
@@ -124,17 +130,19 @@ technique11 Main_11 <
         SetDepthStencilState(DepthEnabling, 0);
         SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
 
-        SetPixelShader(CompileShader(ps_5_0, PS1()));
+        SetPixelShader(CompileShader(ps_5_0, prepreMRT()));
     }
 
     pass p1 <
 	string Script = 
                 "RenderColorTarget0=;"
+                "RenderColorTarget1=;"
 	            "ClearSetColor=gClearColor;"
 	            "Clear=Color;"
                 "Draw=Buffer;";
     >
     {
+        //SetVertexShader(CompileShader(vs_5_0, VS0()));
         SetVertexShader(CompileShader(vs_5_0, ScreenQuadVS2(float2(0,0))));
         SetGeometryShader(NULL);
         
@@ -143,7 +151,7 @@ technique11 Main_11 <
         SetDepthStencilState(DepthDisabling, 0);
         SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
 
-        SetPixelShader(CompileShader(ps_5_0, PS2()));
+        SetPixelShader(CompileShader(ps_5_0, useMRT()));
     }
 }
 }

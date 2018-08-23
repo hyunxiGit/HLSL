@@ -56,10 +56,11 @@ SamplerState SampName\
     AddressV = Wrap;\
 };
 
-#define RENDERTARGET(TexName,SampName, r_x, r_y) Texture2D<float4> TexName : RENDERCOLORTARGET\
+#define RENDERTARGET(TexName,SampName, r_x, r_y,PixelFormat) Texture2D<float4> TexName : RENDERCOLORTARGET\
 <\
     float2 ViewPortRatio = {r_x,r_y}; \
 	string ResourceType = "2D";\
+    string Format = (PixelFormat) ; \
     int Texcoord = 0;\
 	int MapChannel = 1;\
 >;\
@@ -126,3 +127,6 @@ float3 RGBtoHSV(float3 RGB)
     HSL.z = V;
     return HSL;
 }
+
+float3 vector_to_texture(float3 v) { return ((v * 0.5) + float3(0.5, 0.5, 0.5));}
+float3 texture_to_vector(float3 t) { return ((t - float3(0.5, 0.5, 0.5)) * 2.0);}
