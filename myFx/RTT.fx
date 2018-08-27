@@ -9,7 +9,10 @@ float QuadTexOffset <
     string UIName="Texel Alignment Offset";
     string UIWidget="None";
 > = 0.5;
-
+float4 gClearColor <
+    string UIWidget = "Color";
+    string UIName = "Background";
+> = { 0, 0, 0, 0 };
 
 struct QuadVertexOutput
 {
@@ -87,9 +90,9 @@ G_BUFF prepreMRT(PS_IN IN)
 float4 useMRT(QuadVertexOutput IN) : SV_Target
 {
     float4 COL ;
-    //float4 nor = norRTT.Sample(norRTTSamp, IN.UV);
-    COL = abeRTT.Sample(abeSampRTT, IN.UV);
-    COL = float4(1, 0, 0, 1);
+    float4 nor = norRTT.Sample(norRTTSamp, IN.UV);
+    //COL = abeRTT.Sample(abeSampRTT, IN.UV);
+    COL = nor;
     COL.a = 1;
     return COL;
 }
@@ -113,13 +116,9 @@ technique11 Main_11 <
 {
     pass p0 <
 	string Script = 
-                "SV_Target0 = abeRTT"
-                "RenderColorTarget0 = norRTT;"
-                "RenderColorTarget1 = abeRTT;"
-                "ClearSetColor = gClearColor;"
-                "Clear=SV_Target0;"
-                "Clear=SV_Target1;"
-                "Draw = geometry;";
+                "RenderColorTarget0 = abeRTT;"
+                "RenderColorTarget1 = norRTT;";
+             
     >
     {
         SetVertexShader(CompileShader(vs_5_0, VS()));
