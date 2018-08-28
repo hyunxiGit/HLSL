@@ -1,13 +1,11 @@
 #include "Common/Common.hlsli"
 #define BASE_A "D:/work/HLSL/texture/blendBase.png"
 //d1
+#define D1   "D:/work/HLSL/texture/dEarth.tga"
 #define D1_A "D:/work/HLSL/texture/earth_a.jpg"
-#define D1_N "D:/work/HLSL/texture/earth_n.jpg"
-#define D1_R "D:/work/HLSL/texture/earth_r.jpg"
 //d2
+#define D2   "D:/work/HLSL/texture/dGrass.tga"
 #define D2_A "D:/work/HLSL/texture/grass_a.jpg"
-#define D2_N "D:/work/HLSL/texture/grass_n.jpg"
-#define D2_R "D:/work/HLSL/texture/grass_r.jpg"
 
 
 SCRIPT_FX("Technique=Main;")
@@ -20,6 +18,7 @@ float3 Lamp0Pos : POSITION <
     string Space = "World";
 	int refID = 0;
 > = { -0.5f, 2.0f, 1.25f };
+int myC = 0;
 
 //base map
 TEXTURE2D(blendBase, blendBaseSampler, BASE_A, "Base Map",0)
@@ -30,15 +29,14 @@ FLOATUI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 
 //detail 1
 COLORS(d1HSV,float4(0.299f, 0.206f, 0.12f, 1.0f),"d1",3)
-TEXTURE2D(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 4)
-TEXTURE2D(d1nMap, d1nMap_Sampler, D1_N, "d1 normal", 5)
-TEXTURE2D(d1rMap, d1rMap_Sampler, D1_R, "d1 rough", 6)
+TEXTURE2D(d1Map, d1Map_Sampler, D1, "d1", 4)
+TEXTURE2D(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 8)
 
 //detail 2
 COLORS(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 7)
+TEXTURE2D(d2Map, d2Map_Sampler, D2, "d2", 8)
 TEXTURE2D(d2aMap, d2aMap_Sampler, D2_A, "d2 abedo", 8)
-TEXTURE2D(d2nMap, d2nMap_Sampler, D2_N, "d2 normal", 9)
-TEXTURE2D(d2rMap, d2rMap_Sampler, D2_R, "d2 rough", 10)
+
 
 struct VS_IN
 {
@@ -103,6 +101,43 @@ void getWeight(float4 baseColor, inout float weight [2])
         weight[j] = saturate(distance[j] / C);
     }
 }
+
+void getWeightImg(float4 baseColor, float4 vertexColor , int C, inout float weight[2])
+{
+    float a = saturate(vertexColor.r + vertexColor.g + vertexColor.b);
+    
+    if (C==0)
+    {
+        //use color
+        float4 b_v = float4(baseColor.xyz * (1 - a) + a * vertexColor.zyx, baseColor.w);
+        getWeight(b_v, weight);
+    }
+    else if (C==1)
+    {
+        //use channel
+        float3 V1 = d1HSV * vertexColor.b;
+        float3 V2 = d2HSV * vertexColor.g;
+        float4 b_v = float4(baseColor.xyz * (1 - a) + V1 + V2, 1);
+        getWeight(b_v, weight);
+    }
+    
+}
+
+float3 blend(float3 a, float3 b)
+{
+    float3 r;
+    if (a.r+a.g+a.b <1.5)
+    {
+        r = 2 * a * b;
+    }
+    else
+    {
+        r = 1 - 2 * (1 - a) * (1 - b);
+    }
+    saturate(r);
+    return r;
+}
+
 float4 PS_LT(PS_IN IN) : SV_Target
 {
     float4 col;
@@ -132,151 +167,46 @@ float4 PS_LT(PS_IN IN) : SV_Target
     return col;
 }
 
-float4 PS_M(PS_IN IN) : SV_Target
+float4 PS_VERTEX(PS_IN IN , uniform int C) : SV_Target
 {
     float4 col;
 
     //maps
     int UVscale = 5;
-    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);
-    float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
-    float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
-    float4 d1_n= d1nMap.Sample(d1nMap_Sampler, IN.uv * UVscale);
-    float4 d2_n = d2nMap.Sample(d2nMap_Sampler, IN.uv * UVscale);
-    float4 d1_r = d1rMap.Sample(d1rMap_Sampler, IN.uv * UVscale);
-    float4 d2_r = d2rMap.Sample(d2rMap_Sampler, IN.uv * UVscale);
+   
+    float4 b_a  = blendBase.Sample(blendBaseSampler, IN.uv);
+    float4 d1   = d1Map.Sample(d1Map_Sampler, IN.uv* UVscale);
+    float4 d1_a = float4(d1.bbb, 1);
+    float4 d1_n = float4(d1.r, d1.g, 1,1);
+    float4 d1_r = float4(d1.a, d1.a, d1.a, 1);
 
-    //get weight
-    float weight[2] = { 0, 0 };
-    getWeight(b_a, weight);
-    m = m;
-    float blend0 = 1.0f - m;
-    float blend1 = m;
-
-    //abedo
-    float3 diffuse = b_a * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
-
-    //normal
-    float3 b_n = IN.nor;
-    d1_n.xyz = d1_n.xyz * 2.0f - 1.0f; 
-    d1_n.xyz = normalize(float3((d1_n.xy * weight[0] + b_n.xy), b_n.z));
-    d2_n.xyz = d2_n.xyz * 2.0f - 1.0f;
-    d2_n.xyz = normalize(float3((d2_n.xy * weight[1] + b_n.xy), b_n.z));
-    float3 N = normalize(float3(b_n.xy * blend0 + (d1_n.xy + d2_n.xy ) * blend1, b_n.z));
-    N = mul(N, (float3x3) world);
-
-    //roughness 2 specular
-    float b_s = 0;
-    float p1 = 5.5f;
-    float p2 = 5;
-    float s1 = saturate(pow(1 - d1_r.x, p1));
-    float s2 = saturate(pow(1 - d2_r.x, p2));
-    float specular = b_s * blend0 + (s1 * weight[0] + s2 * weight[1]) * blend1;
-
-    //lighting
-    float3 A = float3(0.36f, 0.37f, 0.38f) *0.02;
-    float3 L = normalize(Lamp0Pos - IN.p_w);
-    float3 V = IN.viw;
-
-    float3 Hn = normalize(L + V);
-
-    float4 litV = lit(dot(L, N), dot(Hn, N), 5);
-    float3 D = litV.y * diffuse;
-    float3 S = litV.y * litV.z * specular * (diffuse * 0.5 + float3(1, 1, 1)*0.5);
-
-    col.xyz = D+S+A;
-    col.w = 1;
-    return col;
-}
-
-float4 PS_VCO(PS_IN IN) : SV_Target
-{
-    float4 col;
-
-    //maps
-    int UVscale = 5;
-    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);
-    float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
-    float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
-    float4 d1_n = d1nMap.Sample(d1nMap_Sampler, IN.uv * UVscale);
-    float4 d2_n = d2nMap.Sample(d2nMap_Sampler, IN.uv * UVscale);
-    float4 d1_r = d1rMap.Sample(d1rMap_Sampler, IN.uv * UVscale);
-    float4 d2_r = d2rMap.Sample(d2rMap_Sampler, IN.uv * UVscale);
-
-    float a = saturate(IN.col.r + IN.col.g + IN.col.b);
-    float4 b_v = float4(b_a.xyz * (1 - a) + a * IN.col.zyx, b_a.w);
-
-
-    //get weight
-    float weight[2] = { 0, 0 };
-    getWeight(b_v, weight);
-    float blend0 = 1.0f - m;
-    float blend1 = m;
-
-    //abedo
-    float3 diffuse = b_a * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
-
-    //normal
-    float3 b_n = IN.nor;
-    d1_n.xyz = d1_n.xyz * 2.0f - 1.0f;
-    d1_n.xyz = normalize(float3((d1_n.xy * weight[0] + b_n.xy), b_n.z));
-    d2_n.xyz = d2_n.xyz * 2.0f - 1.0f;
-    d2_n.xyz = normalize(float3((d2_n.xy * weight[1] + b_n.xy), b_n.z));
-    float3 N = normalize(float3(b_n.xy * blend0 + (d1_n.xy + d2_n.xy) * blend1, b_n.z));
-    N = mul(N, (float3x3) world);
-
-    //roughness 2 specular
-    float b_s = 0;
-    float p1 = 5.5f;
-    float p2 = 5;
-    float s1 = saturate(pow(1 - d1_r.x, p1));
-    float s2 = saturate(pow(1 - d2_r.x, p2));
-    float specular = b_s * blend0 + (s1 * weight[0] + s2 * weight[1]) * blend1;
-
-    //lighting
-    float3 A = float3(0.36f, 0.37f, 0.38f) * 0.01;
-    float3 L = normalize(Lamp0Pos - IN.p_w);
-    float3 V = IN.viw;
-
-    float3 Hn = normalize(L + V);
-
-    float4 litV = lit(dot(L, N), dot(Hn, N), 5);
-    float3 D = litV.y * diffuse;
-    float3 S = litV.y * litV.z * specular * (diffuse * 0.5 + float3(1, 1, 1) * 0.5);
-
-    col.xyz = D + S + A;
-    col.w = 1;
-    return col;
-}
-
-float4 PS_VCH(PS_IN IN) : SV_Target
-{
-    float4 col;
-
-    //maps
-    int UVscale = 5;
-    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);
-    float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
-    float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
-    float4 d1_n = d1nMap.Sample(d1nMap_Sampler, IN.uv * UVscale);
-    float4 d2_n = d2nMap.Sample(d2nMap_Sampler, IN.uv * UVscale);
-    float4 d1_r = d1rMap.Sample(d1rMap_Sampler, IN.uv * UVscale);
-    float4 d2_r = d2rMap.Sample(d2rMap_Sampler, IN.uv * UVscale);
-    
-    //vertext
-    float a = saturate(IN.col.r + IN.col.g + IN.col.b);     
-    float3 V1 = d1HSV * IN.col.b;
-    float3 V2 = d2HSV * IN.col.g;
-    float4 b_v = float4(b_a.xyz * (1 - a) + V1 + V2,1);
+    float4 d2   = d2Map.Sample(d2Map_Sampler, IN.uv * UVscale);
+    float4 d2_a = float4(d2.bbb, 1);
+    float4 d2_n = float4(d2.rg, 1, 1);
+    float4 d2_r = float4(d2.a, d2.a, d2.a, 1);
    
     //get weight
     float weight[2] = { 0, 0 };
-    getWeight(b_v, weight);
+    getWeightImg(b_a, IN.col, C, weight);
+   
     float blend0 = 1.0f - m;
     float blend1 = m;
 
     //abedo
-    float3 diffuse = b_a * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
+    int useDetailColor = 1;
+    float3 diffuse;
+    if (useDetailColor == 0)
+    {
+        //color
+        d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
+        d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
+        diffuse = b_a * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
+    }
+    else if (useDetailColor == 1)
+    {
+        //grey
+        diffuse = b_a.xyz * blend0 + blend(b_a.xyz, (d1_a * weight[0] + d2_a * weight[1]).xyz) * blend1;
+    }
 
     //normal
     float3 b_n = IN.nor;
@@ -306,35 +236,14 @@ float4 PS_VCH(PS_IN IN) : SV_Target
     float3 D = litV.y * diffuse;
     float3 S = litV.y * litV.z * specular * (diffuse * 0.5 + float3(1, 1, 1) * 0.5);
 
-    col.xyz = diffuse;
+    col.xyz = D;
     col.w = 1;
     return col;
 }
-
-struct vertex2pixel
-{
-    float4 pos : SV_Position;
-    float2 uv : TEXCOORD0;
-    float3 lightTangent : TEXCOORD1;
-};
 
 
 fxgroup dx11
 {
-
-    technique11 Main<
-        string script = "Pass = p0;";
-        >
-    {
-        pass p0 <
-        string Script = "Draw=geometry;";
-        >
-        {
-            SetVertexShader(CompileShader(vs_5_0, VS()));
-            SetGeometryShader(NULL);
-            SetPixelShader(CompileShader(ps_5_0, PS_M()));
-        }
-    }
 
     technique11 VertexByColor<
             string script = "Pass = p0;";
@@ -346,7 +255,7 @@ fxgroup dx11
         {
             SetVertexShader(CompileShader(vs_5_0, VS()));
             SetGeometryShader(NULL);
-            SetPixelShader(CompileShader(ps_5_0, PS_VCO()));
+            SetPixelShader(CompileShader(ps_5_0, PS_VERTEX(0)));
         }
     }
 
@@ -360,7 +269,7 @@ fxgroup dx11
         {
             SetVertexShader(CompileShader(vs_5_0, VS()));
             SetGeometryShader(NULL);
-            SetPixelShader(CompileShader(ps_5_0, PS_VCH()));
+            SetPixelShader(CompileShader(ps_5_0, PS_VERTEX(1)));
         }
     }
 
