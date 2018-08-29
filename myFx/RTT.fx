@@ -1,134 +1,144 @@
 #include "Common/Common.hlsli"
 #define BASE_A "D:/work/HLSL/texture/blendBase.png"
 
-SCRIPT_FX("Technique=Main_11;")
+float Script : STANDARDSGLOBAL <
+string UIWidget = "none";
+string ScriptClass = "object";
+string ScriptOrder = "standard";
+string ScriptOutput = "color";
+string Script = "Technique=Main_11;";
+> = 0.8;
 
-TEXTURE2D(blendBase, blendBaseSampler, "D:/work/HLSL/texture/blendBase.png", "Base Map", 0)
+string ParamID = "0x003";
 
-float QuadTexOffset <
-    string UIName="Texel Alignment Offset";
-    string UIWidget="None";
-> = 0.5;
-float4 gClearColor <
-    string UIWidget = "Color";
-    string UIName = "Background";
-> = { 0, 0, 0, 0 };
+#define PATH_D "C:/MyGit/HLSL/texture/grass_a.jpg"
+TEXTURE2D(abedo, abedo_Sampler, PATH_D, "Abedo", 0)
 
-struct QuadVertexOutput
+float4 gClearColor = float4(0, 0, 0, 0);
+float gClearDepth <string UIWidget = "none";> = 1.0;
+
+Texture2D<float4> ABE_TAR : RENDERCOLORTARGET
+ <
+    float2 ViewPortRatio = {1,1}; 
+	string ResourceType = "2D";
+    string Format = "A16B16G16R16" ; 
+    int Texcoord = 0;
+	int MapChannel = 1;
+>;
+SamplerState ABE_TAR_SAMP
 {
-    float4 Position : SV_POSITION;
-    float2 UV : TEXCOORD0;
+    AddressU = Wrap;
+    AddressV = Wrap;
 };
-//these are the way to create screen quad from Vertex ID... all red by now
-//struct VertexOut
-//{
-//    float4 PosH     : SV_POSITION;
-//    float2 Tex      : TEXCOORD;
-//};
 
-//VertexOut VS0(uint id : SV_VertexId)
-//{
-//    VertexOut vout;
-//    vout.Tex = float2(id % 2, (id % 4) >> 1);
-//    vout.PosH = float4((vout.Tex.x - 0.5f) * 2, -(vout.Tex.y - 0.5f) * 2, 0, 1);
-//    return vout;
-//}
-
-QuadVertexOutput ScreenQuadVS2(
-    float3 Position : SV_POSITION,
-    float3 TexCoord : TEXCOORD0,
-    uniform float2 TexelOffsets
-)
+Texture2D<float4> NOR_TAR : RENDERCOLORTARGET
+ <
+    float2 ViewPortRatio = {1,1}; 
+	string ResourceType = "2D";
+    string Format = "A16B16G16R16" ; 
+    int Texcoord = 0;
+	int MapChannel = 1;
+>;
+SamplerState NOR_TAR_SAMP
 {
-    QuadVertexOutput OUT;
-    OUT.Position = float4(Position, 1);
-    OUT.UV = float2(TexCoord.xy + TexelOffsets);
-    return OUT;
-}
+    AddressU = Wrap;
+    AddressV = Wrap;
+};
 
+Texture2D<float4> DepthBuffer : RENDERDEPTHSTENCILTARGET < 
+    float2 ViewPortRatio = {1,1}; 
+    string Format = "D24S8"; 
+    string UIWidget = ("None"); 
+>;
 
 struct VS_IN
 {
     float4 pos : POSITION;
-    float3 nor : NORMAL;
+    float4 nor : NORMAL;
     float2 uv : TEXCOORD0;
 };
 
-struct PS_IN
+struct GBUFF
 {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
-    float3 nor : TEXCOORD1;
+    float4 nor_w : TEXCOORD1;
 };
 
-PS_IN VS(VS_IN IN)
+ GBUFF UNLID_VS(VS_IN IN)
 {
-    PS_IN OUT = (PS_IN) 0;
+    GBUFF OUT;
     OUT.pos = mul(IN.pos, wvp);
-    OUT.nor = normalize(mul(IN.nor, (float3x3) world));
     OUT.uv = IN.uv;
+    OUT.nor_w = mul(IN.nor, worldI);
     return OUT;
 }
 
-RENDERTARGET(norRTT, norRTTSamp, 1, 1, "A16B16G16R16")
-RENDERTARGET(abeRTT, abeSampRTT, 1, 1, "A16B16G16R16")
 
-struct G_BUFF
+void prepreMRT(GBUFF IN, out float4 a : SV_Target0, out float4 n : SV_Target1)
 {
-    float4 abe_g : SV_Target0;
-    float4 nor_g : SV_Target1;
+    a = abedo.Sample(abedo_Sampler, IN.uv);
+    n = float4(vector_to_texture(IN.nor_w.xyz), 1);
+}
+
+struct QuadVertexOutput
+{
+    float4 pos : POSITION;
+    float2 uv : TEXCOORD0;
 };
 
-G_BUFF prepreMRT(PS_IN IN)
+
+QuadVertexOutput ScreenQuadVS2(
+    float3 pos : POSITION,
+    float3 uv : TEXCOORD0
+)
 {
-    G_BUFF OUT;
-    OUT.abe_g = blendBase.Sample(blendBaseSampler, IN.uv);
-    OUT.nor_g = float4(vector_to_texture(IN.nor), 1);
+    QuadVertexOutput OUT;
+    OUT.pos = float4(pos, 1);
+    OUT.uv = float2(uv.xy);
     return OUT;
 }
 
-float4 useMRT(QuadVertexOutput IN) : SV_Target
+float4 useMRTPS(QuadVertexOutput IN): SV_Target
 {
-    float4 COL ;
-    float4 nor = norRTT.Sample(norRTTSamp, IN.UV);
-    //COL = abeRTT.Sample(abeSampRTT, IN.UV);
-    COL = nor;
-    COL.a = 1;
-    return COL;
+    float4 col;
+    col = NOR_TAR.Sample(NOR_TAR_SAMP, IN.uv);
+    return col;
 }
 
-RasterizerState DisableCulling{CullMode = NONE;};
+RasterizerState DisableCulling { CullMode = NONE; };
 DepthStencilState DepthEnabling { DepthEnable = TRUE; };
-BlendState DisableBlend { BlendEnable[0] = FALSE; };
-DepthStencilState DepthDisabling
-{
-    DepthEnable = FALSE;
-    DepthWriteMask = ZERO;
+DepthStencilState DepthDisabling {
+	DepthEnable = FALSE;
+	DepthWriteMask = ZERO;
 };
+BlendState DisableBlend { BlendEnable[0] = FALSE; };
 
 fxgroup dx11
 {
 
 technique11 Main_11 <
-	string Script = "Pass=p0;"  
-	                 "Pass=p1;";
+	string Script = "Pass=p0;";
 >
 {
     pass p0 <
 	string Script = 
-                "RenderColorTarget0 = abeRTT;"
-                "RenderColorTarget1 = norRTT;";
-             
+                "RenderColorTarget0 = ABE_TAR;"
+                "RenderColorTarget1 = NOR_TAR;"
+                "RenderDepthStencilTarget=DepthBuffer;"
+	            "ClearSetColor=gClearColor;"
+	            "ClearSetDepth=gClearDepth;"
+                "Clear=SV_TARGET0;"
+	            "Clear=SV_TARGET1;"
+                "Clear=Depth;"
+                "Draw=Geometry;";
     >
     {
-        SetVertexShader(CompileShader(vs_5_0, VS()));
-        SetGeometryShader(NULL);
-        
-        //these are not must have but used in deffer render ,need to check meaning
         SetRasterizerState(DisableCulling);
         SetDepthStencilState(DepthEnabling, 0);
         SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
-
+        SetVertexShader(CompileShader(vs_5_0, UNLID_VS()));
+        SetGeometryShader(NULL);
         SetPixelShader(CompileShader(ps_5_0, prepreMRT()));
     }
 
@@ -136,21 +146,21 @@ technique11 Main_11 <
 	string Script = 
                 "RenderColorTarget0=;"
                 "RenderColorTarget1=;"
+                "RenderDepthStencilTarget=;"
 	            "ClearSetColor=gClearColor;"
+	            "ClearSetDepth=gClearDepth;"
 	            "Clear=Color;"
-                "Draw=Buffer;";
+	            "Clear=Depth;"
+	            "Draw=Buffer;";        
     >
     {
-        //SetVertexShader(CompileShader(vs_5_0, VS0()));
-        SetVertexShader(CompileShader(vs_5_0, ScreenQuadVS2(float2(0,0))));
-        SetGeometryShader(NULL);
-        
-        //these are not must have but used in deffer render ,need to check meaning
+        SetVertexShader(CompileShader(vs_5_0, ScreenQuadVS2()));
         SetRasterizerState(DisableCulling);
         SetDepthStencilState(DepthDisabling, 0);
         SetBlendState(DisableBlend, float4(0.0f, 0.0f, 0.0f, 0.0f), 0xFFFFFFFF);
-
-        SetPixelShader(CompileShader(ps_5_0, useMRT()));
+        SetGeometryShader(NULL);
+        SetPixelShader(CompileShader(ps_5_0, useMRTPS()));
     }
+
 }
 }
