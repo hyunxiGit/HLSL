@@ -20,22 +20,33 @@ float3 Lamp0Pos : POSITION <
 > = { -0.5f, 2.0f, 1.25f };
 int myC = 0;
 
+
 //base map
 TEXTURE2D(blendBase, blendBaseSampler, BASE_A, "Base Map",0)
+
 
 //blending parameters
 FLOATUI(n, 0.0f, 15.0f, 8, "blend power", 1)
 FLOATUI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 
+
+bool detailColor <
+	string UIName = "Use detail Map Color";
+    int UIOrder = 3;
+> = false;
+
 //detail 1
-COLORS(d1HSV,float4(0.299f, 0.206f, 0.12f, 1.0f),"d1",3)
-TEXTURE2D(d1Map, d1Map_Sampler, D1, "d1", 4)
-TEXTURE2D(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 8)
+COLORS(d1HSV,float4(0.299f, 0.206f, 0.12f, 1.0f),"d1",4)
+TEXTURE2D(d1Map, d1Map_Sampler, D1, "d1", 5)
+
+TEXTURE2D(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 6)
+
+
 
 //detail 2
 COLORS(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 7)
 TEXTURE2D(d2Map, d2Map_Sampler, D2, "d2", 8)
-TEXTURE2D(d2aMap, d2aMap_Sampler, D2_A, "d2 abedo", 8)
+TEXTURE2D(d2aMap, d2aMap_Sampler, D2_A, "d2 abedo", 9)
 
 
 struct VS_IN
@@ -138,35 +149,6 @@ float3 blend(float3 a, float3 b)
     return r;
 }
 
-float4 PS_LT(PS_IN IN) : SV_Target
-{
-    float4 col;
-
-    //maps
-    int UVscale = 5;
-    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);
-    float3 diffuse = b_a;
-    //normal
-    float3 b_n = IN.nor;
-    float3 N = b_n;
-    N = mul(N, (float3x3) world);
-
-    //lighting
-    float3 A = float3(0.36f, 0.37f, 0.38f) * 0.02;
-    float3 L = normalize(Lamp0Pos - IN.p_w.xyz);
-    float3 V = IN.viw;
-
-    float3 Hn = normalize(L + V);
-
-    float4 litV = lit(dot(L, N), dot(Hn, N), 5);
-    float3 D = litV.y * diffuse;
-    //float3 S = litV.y * litV.z * specular * (diffuse * 0.5 + float3(1, 1, 1) * 0.5);
-
-    col.xyz = D ;
-    col.w = 1;
-    return col;
-}
-
 float4 PS_VERTEX(PS_IN IN , uniform int C) : SV_Target
 {
     float4 col;
@@ -193,16 +175,15 @@ float4 PS_VERTEX(PS_IN IN , uniform int C) : SV_Target
     float blend1 = m;
 
     //abedo
-    int useDetailColor = 1;
     float3 diffuse;
-    if (useDetailColor == 0)
+    if (detailColor)
     {
         //color
         d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
         d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
         diffuse = b_a * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
     }
-    else if (useDetailColor == 1)
+    else 
     {
         //grey
         diffuse = b_a.xyz * blend0 + blend(b_a.xyz, (d1_a * weight[0] + d2_a * weight[1]).xyz) * blend1;
