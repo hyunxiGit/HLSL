@@ -12,20 +12,22 @@ string Script = (usetechnique);\
 > = 0.8;\
 string ParamID = "0x003";
 
-#define FLOATUI(name ,uiMin, uiMax,defaultV, uiName, uiOrder) float name <\
+#define DECLARE_FLOAT_UI(name ,uiMin, uiMax,defaultV, uiName, uiOrder) float name <\
     string UIName = (uiName);\
 	string UIWidget = "slider";\
     float UIMin = (uiMin);\
     float UIMax = (uiMax);\
     int UIOrder = (uiOrder);\
 > = (defaultV);
+#define DECLARE_FLOAT(name ,uiMin, uiMax,defaultV, uiName ) DECLARE_FLOAT_UI(name ,uiMin, uiMax,defaultV, uiName, 0)
 
-#define COLORS(name, value , uiName, uiOrder)\
+#define DECLARE_COLOR_UI(name, value , uiName, uiOrder)\
 float4 name <\
 string UIName = (uiName);\
 string UIWidget = "Color";\
 int UIOrder = (uiOrder);\
 > = (value);
+#define DECLARE_COLOR(name, value , uiName ) DECLARE_COLOR_UI(name, value , uiName, 0)
 
 #define TEXTURE2DNO(TextName , SampName) \
 Texture2D<float4> TextName <\

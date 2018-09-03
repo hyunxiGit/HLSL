@@ -1,3 +1,5 @@
+// this fx pack all used function in scene deffer rendering in one file
+// this fx includes useful pass script setting for RTT
 float Script : STANDARDSGLOBAL <
     string UIWidget = "none";
     string ScriptClass = "scene";

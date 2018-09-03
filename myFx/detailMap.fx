@@ -26,8 +26,8 @@ TEXTURE2D(blendBase, blendBaseSampler, BASE_A, "Base Map",0)
 
 
 //blending parameters
-FLOATUI(n, 0.0f, 15.0f, 8, "blend power", 1)
-FLOATUI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
+DECLARE_FLOAT_UI(n, 0.0f, 15.0f, 8, "blend power", 1)
+DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 
 
 bool detailColor <
@@ -36,7 +36,7 @@ bool detailColor <
 > = false;
 
 //detail 1
-COLORS(d1HSV,float4(0.299f, 0.206f, 0.12f, 1.0f),"d1",4)
+DECLARE_COLOR_UI(d1HSV,float4(0.299f, 0.206f, 0.12f, 1.0f),"d1",4)
 TEXTURE2D(d1Map, d1Map_Sampler, D1, "d1", 5)
 
 TEXTURE2D(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 6)
@@ -44,7 +44,7 @@ TEXTURE2D(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 6)
 
 
 //detail 2
-COLORS(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 7)
+DECLARE_COLOR_UI(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 7)
 TEXTURE2D(d2Map, d2Map_Sampler, D2, "d2", 8)
 TEXTURE2D(d2aMap, d2aMap_Sampler, D2_A, "d2 abedo", 9)
 
