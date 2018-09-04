@@ -3,6 +3,8 @@ float4x4 viewI : ViewInverse;
 float4x4 world : WORLD;
 float4x4 worldI : WorldInverseTranspose;
 
+#define Pi 3.14159
+
 #define SCRIPT_FX(usetechnique) float Script : STANDARDSGLOBAL <\
 string UIWidget = "none";\
 string ScriptClass = "object";\
@@ -28,6 +30,16 @@ string UIWidget = "Color";\
 int UIOrder = (uiOrder);\
 > = (value);
 #define DECLARE_COLOR(name, value , uiName ) DECLARE_COLOR_UI(name, value , uiName, 0)
+
+#define DECLARE_LIGHT_UI(lightName , objectName, uiName, id , uiOrder)\
+float3 lightName : POSITION <\
+string Object = (objectName);\
+string UIName = (uiName);\
+string Space = "World";\
+int refID = (id);\
+int UIOrder = (uiOrder);\
+> = { -0.5f, 2.0f, 1.25f };
+#define DECLARE_LIGHT(lightName , objectName, uiName, id ) DECLARE_LIGHT_UI(lightName , objectName, uiName, id, 0)
 
 #define TEXTURE2DNO(TextName , SampName) \
 Texture2D<float4> TextName <\
