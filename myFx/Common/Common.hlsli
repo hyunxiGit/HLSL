@@ -3,7 +3,7 @@ float4x4 viewI : ViewInverse;
 float4x4 world : WORLD;
 float4x4 worldI : WorldInverseTranspose;
 
-#define Pi 3.14159
+#define PI 3.14159
 
 #define SCRIPT_FX(usetechnique) float Script : STANDARDSGLOBAL <\
 string UIWidget = "none";\
@@ -69,6 +69,21 @@ SamplerState SampName\
     AddressU = Wrap;\
     AddressV = Wrap;\
 };
+
+#define DECLARE_CUBE_UI(TexName, SampName, uiName , uIOrder)\
+TextureCube TexName < \
+    string UIName = (uiName);\
+	string ResourceType = "CUBE";\
+    int UIOrder = (uIOrder);\
+>;\
+SamplerState SampName\
+{\
+    Filter = MIN_MAG_MIP_LINEAR;\
+    AddressU = Clamp;\
+    AddressV = Clamp;\
+    AddressW = Clamp;\
+};
+#define DECLARE_CUBE(TexName, SampName, uiName) DECLARE_CUBE_UI(TexName, SampName, uiName , 0)
 
 #define RENDERTARGET(TexName,SampName, r_x, r_y,PixelFormat) Texture2D<float4> TexName : RENDERCOLORTARGET\
 <\
