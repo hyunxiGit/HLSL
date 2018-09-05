@@ -8,7 +8,7 @@ DECLARE_FLOAT(metalness, 0, 1, 1, "metalness")
 DECLARE_FLOAT(F0, 0, 1, 0.5, "fresnel")
 DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
 DECLARE_CUBE(EnvMap, EnvMapSampler, "cube")
-
+DECLARE_FLOAT(EnvI, 0, 1, 0.5f, "cube intensity")
 
 struct VS_IN
 {
@@ -55,8 +55,9 @@ float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h)
     //NDF
     float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
 	//G
-    float k = (r + 1) * (r + 1) / 8;
-    float G = GlV(NoV, k) * GlV(NoL, k);
+    float G = G_Smith(r, NoV, NoL);
+    //float k = (r + 1) * (r + 1) / 8;
+    //float G = GlV(NoV, k) * GlV(NoL, k);
 	//Fresnel
     float NoL5 = pow(1 - dot(l, h), 5);
     float F = F0 + (1 - F0) * NoL5;
@@ -98,7 +99,7 @@ float3 ImportanceSampleGGX(float2 Xi, float Roughness, float3 N)
 float3 specularIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
 {
     float3 SpecularLighting = 0;
-    const uint NumSamples = 200;
+    const uint NumSamples = 50;
     for (uint i = 0; i < NumSamples; i++)
     {
         float2 Xi = Hammersley(i, NumSamples);
@@ -114,9 +115,11 @@ float3 specularIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
             float G = G_Smith(Roughness, NoV, NoL);
             float Fc = pow(1 - VoH, 5);
             float3 F = (1 - Fc) * SpecularColor + Fc;
-			// Incident light = SampleColor * NoL
-			// Microfacet specular = D*G*F / (4*NoL*NoV)
+			
+            //Incident_light = SampleColor * NoL;
+			//Microfacet specular = D*G*F / (4*NoL*NoV)
 			// pdf = D * NoH / (4 * VoH)
+            
             SpecularLighting += SampleColor * F * G * VoH / (NoH * NoV);
         }
     }
@@ -126,6 +129,7 @@ float3 specularIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
 float4 PS(PS_IN IN) : SV_Target
 {
     int lightModel = 2; //0, blinn; 1 , phon ; 2 ,BRDF
+    int useIBL = 0;
     float4 COL = { 1, 0, 1, 1 };
     float4 A = abedo;
     float3 L = normalize(myLight);
@@ -157,9 +161,9 @@ float4 PS(PS_IN IN) : SV_Target
             COL.xyz = S;
         }
     }
+    COL.xyz = D * A + S;
+    COL.xyz += EnvI * specularIBL(float3(1, 1, 1), roughness, N, V);
     
-    COL.xyz = specularIBL(float3(1, 1, 1), roughness, N, V);
-    //COL.xyz = D * A + S;
     COL.w = 1;
 
     return COL;
