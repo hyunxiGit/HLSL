@@ -3,11 +3,11 @@
 SCRIPT_FX("Technique=Main_11;")
 
 DECLARE_COLOR(abedo, float4(1,0.88,0.61,1), "abedo color")
-DECLARE_FLOAT(roughness, 0,1,0.5,"roughness")
-DECLARE_FLOAT(metalness, 0,1,1,"metalness")
-DECLARE_FLOAT(F0, 0,1,0.5,"fresnel")
+DECLARE_FLOAT(roughness, 0, 1, 0.5, "roughness")
+DECLARE_FLOAT(metalness, 0, 1, 1, "metalness")
+DECLARE_FLOAT(F0, 0, 1, 0.5, "fresnel")
 DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
-DECLARE_CUBE(EnvMap, EnvMapSampler, "Reflection")
+DECLARE_CUBE(EnvMap, EnvMapSampler, "cube")
 
 
 struct VS_IN
@@ -20,7 +20,7 @@ struct VS_IN
 struct PS_IN
 {
     float4 P_P : SV_POSITION;
-    float2 uv :  TEXCOORD0;
+    float2 uv : TEXCOORD0;
     float3 N_W : TEXCOORD1;
     float4 P_W : TEXCOORD2;
 };
@@ -45,15 +45,15 @@ float G_Smith(float r, float NoV, float NoL)
     return G;
 }
 
-float Cook_Torrance(float r, float3 n , float3 l , float3 v, float3 h )
-{   
+float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h)
+{
     float r2 = r * r;
     float NoH = dot(n, h);
     float NoV = dot(n, v);
     float NoL = dot(n, l);
 
     //NDF
-	float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
+    float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
 	//G
     float k = (r + 1) * (r + 1) / 8;
     float G = GlV(NoV, k) * GlV(NoL, k);
@@ -61,8 +61,8 @@ float Cook_Torrance(float r, float3 n , float3 l , float3 v, float3 h )
     float NoL5 = pow(1 - dot(l, h), 5);
     float F = F0 + (1 - F0) * NoL5;
     
-    float s = D * F * G / (4 * NoL *NoV);
-	return s;
+    float s = D * F * G / (4 * NoL * NoV);
+    return s;
 }
 float RadicalInverse_VdC(uint bits)
 {
@@ -98,7 +98,7 @@ float3 ImportanceSampleGGX(float2 Xi, float Roughness, float3 N)
 float3 specularIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
 {
     float3 SpecularLighting = 0;
-    const uint NumSamples = 1024;
+    const uint NumSamples = 200;
     for (uint i = 0; i < NumSamples; i++)
     {
         float2 Xi = Hammersley(i, NumSamples);
@@ -122,36 +122,6 @@ float3 specularIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
     }
     return SpecularLighting / NumSamples;
 }
-
-
-float3 specularIBLTEST(float3 SpecularColor, float Roughness, float3 N, float3 V)
-{
-    float3 SpecularLighting = 0;
-    const uint NumSamples = 2;
-    for (uint i = 0; i < NumSamples; i++)
-    {
-        float2 Xi = Hammersley(i, NumSamples);
-        float3 H = ImportanceSampleGGX(Xi, Roughness, N);
-        float3 L = 2 * dot(V, H) * H - V;
-        float NoV = saturate(dot(N, V));
-        float NoL = saturate(dot(N, L));
-        float NoH = saturate(dot(N, H));
-        float VoH = saturate(dot(V, H));
-        if (NoL > 0)
-        {
-            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;
-            float G = G_Smith(Roughness, NoV, NoL);
-            float Fc = pow(1 - VoH, 5);
-            float3 F = (1 - Fc) * SpecularColor + Fc;
-			// Incident light = SampleColor * NoL
-			// Microfacet specular = D*G*F / (4*NoL*NoV)
-			// pdf = D * NoH / (4 * VoH)
-            SpecularLighting += SampleColor * F * G * VoH / (NoH * NoV);
-        }
-    }
-    return SpecularLighting / NumSamples;
-}
-
 
 float4 PS(PS_IN IN) : SV_Target
 {
@@ -170,7 +140,7 @@ float4 PS(PS_IN IN) : SV_Target
     
     if (NoL > 0)
     {
-		D =  NoL;
+        D = NoL;
         if (lightModel == 0)
         {
             float3 R = -L - 2 * dot(N, -L) * N;
@@ -183,14 +153,12 @@ float4 PS(PS_IN IN) : SV_Target
         }
         else if (lightModel == 2)
         {
-            S = Cook_Torrance(roughness, N , L , V, H );
+            S = Cook_Torrance(roughness, N, L, V, H);
+            COL.xyz = S;
         }
     }
     
-    COL.xyz = specularIBLTEST(float3(1, 1, 1), roughness, N, V);
-
-        
-
+    COL.xyz = specularIBL(float3(1, 1, 1), roughness, N, V);
     //COL.xyz = D * A + S;
     COL.w = 1;
 
