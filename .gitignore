@@ -13,7 +13,4 @@ playground/playground1/playground1/Debug/
 playground/playground1/playground1/x64/
 playground/playground1/x64/Debug/
 Packt.HLSL Development Cookbook.2013.pdf
-texture/WeChat Image_20180815143749.png
-texture/blendBase.png
-texture/palete.jpg
-texture/*.dds
+texture/*.*

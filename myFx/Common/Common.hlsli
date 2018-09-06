@@ -4,7 +4,7 @@ float4x4 world : WORLD;
 float4x4 worldI : WorldInverseTranspose;
 
 #define PI 3.14159
-#define DielectricSpec float4(0.22, 0.22, 0.22, 0.779)
+#define DielectricSpec float4(0.22f, 0.22f, 0.22f, 0.779f)
 
 #define SCRIPT_FX(usetechnique) float Script : STANDARDSGLOBAL <\
 string UIWidget = "none";\
@@ -14,6 +14,13 @@ string ScriptOutput = "color";\
 string Script = (usetechnique);\
 > = 0.8;\
 string ParamID = "0x003";
+
+#define DECLARE_BOOL_UI(name , uiName , uiOrder) \
+bool name <\
+	string UIName = (uiName);\
+    int UIOrder = (uiOrder);\
+> = false;
+#define DECLARE_BOOL(name , uiName) DECLARE_BOOL_UI(name , uiName , 0)
 
 #define DECLARE_FLOAT_UI(name ,uiMin, uiMax,defaultV, uiName, uiOrder) float name <\
     string UIName = (uiName);\
@@ -42,20 +49,7 @@ int UIOrder = (uiOrder);\
 > = { -0.5f, 2.0f, 1.25f };
 #define DECLARE_LIGHT(lightName , objectName, uiName, id ) DECLARE_LIGHT_UI(lightName , objectName, uiName, id, 0)
 
-#define TEXTURE2DNO(TextName , SampName) \
-Texture2D<float4> TextName <\
-	string ResourceType = "2D";\
-    int Texcoord = 0;\
-	int MapChannel = 1;\
->;\
-SamplerState SampName\
-{\
-    Filter = MIN_MAG_MIP_LINEAR;\
-    AddressU = Wrap;\
-    AddressV = Wrap;\
-};
-
-#define TEXTURE2D(TexName, SampName, filename, uiName , uIOrder)\
+#define TEXTURE2D_UI(TexName, SampName, filename, uiName , uIOrder)\
 Texture2D<float4> TexName <\
 	string UIName = (uiName);\
     string name = (filename);\
@@ -70,10 +64,13 @@ SamplerState SampName\
     AddressU = Wrap;\
     AddressV = Wrap;\
 };
+#define TEXTURE2D(TexName, SampName, filename, uiName) TEXTURE2D_UI(TexName, SampName, filename, uiName , 0)
 
-#define DECLARE_CUBE_UI(TexName, SampName, uiName , uIOrder)\
+
+#define DECLARE_CUBE_UI(TexName, SampName, filename, uiName , uIOrder)\
 TextureCube TexName < \
     string UIName = (uiName);\
+    string name = (filename);\
 	string ResourceType = "CUBE";\
     int UIOrder = (uIOrder);\
 >;\
@@ -84,7 +81,7 @@ SamplerState SampName\
     AddressV = Clamp;\
     AddressW = Clamp;\
 };
-#define DECLARE_CUBE(TexName, SampName, uiName) DECLARE_CUBE_UI(TexName, SampName, uiName , 0)
+#define DECLARE_CUBE(TexName, SampName, filename, uiName) DECLARE_CUBE_UI(TexName, SampName,filename, uiName , 0)
 
 #define RENDERTARGET(TexName,SampName, r_x, r_y,PixelFormat) Texture2D<float4> TexName : RENDERCOLORTARGET\
 <\

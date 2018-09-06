@@ -22,7 +22,7 @@ int myC = 0;
 
 
 //base map
-TEXTURE2D(blendBase, blendBaseSampler, BASE_A, "Base Map",0)
+TEXTURE2D_UI(blendBase, blendBaseSampler, BASE_A, "Base Map",0)
 
 
 //blending parameters
@@ -37,16 +37,16 @@ bool detailColor <
 
 //detail 1
 DECLARE_COLOR_UI(d1HSV,float4(0.299f, 0.206f, 0.12f, 1.0f),"d1",4)
-TEXTURE2D(d1Map, d1Map_Sampler, D1, "d1", 5)
+TEXTURE2D_UI(d1Map, d1Map_Sampler, D1, "d1", 5)
 
-TEXTURE2D(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 6)
+TEXTURE2D_UI(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 6)
 
 
 
 //detail 2
 DECLARE_COLOR_UI(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 7)
-TEXTURE2D(d2Map, d2Map_Sampler, D2, "d2", 8)
-TEXTURE2D(d2aMap, d2aMap_Sampler, D2_A, "d2 abedo", 9)
+TEXTURE2D_UI(d2Map, d2Map_Sampler, D2, "d2", 8)
+TEXTURE2D_UI(d2aMap, d2aMap_Sampler, D2_A, "d2 abedo", 9)
 
 
 struct VS_IN

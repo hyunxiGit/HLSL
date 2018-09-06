@@ -1,19 +1,36 @@
 #include "Common/Common.hlsli"
-#define CUBE_M   "D:/work/HLSL/texture/default_reflection_cubic.dds"
+
 SCRIPT_FX("Technique=Main_11;")
 
-DECLARE_COLOR(abedo, float4(1,0.88,0.61,1), "abedo color")
+DECLARE_COLOR(abedo, float4(1,0.85,0.61,1), "abedo color")
 DECLARE_FLOAT(roughness, 0.05, 0.99, 0.5, "roughness")
 DECLARE_FLOAT(metalness, 0, 1, 1, "metalness")
 DECLARE_FLOAT(F0, 0, 1, 0.5, "fresnel")
 DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
-DECLARE_CUBE(EnvMap, EnvMapSampler, CUBE_M, "cube")
 DECLARE_FLOAT(EnvI, 0, 1, 0.5f, "cube intensity")
+
+
+#define BASE_A "D:/work/HLSL/texture/dettail_a.png"
+#define BASE_N "D:/work/HLSL/texture/dettail_n.png"
+#define BASE_R "D:/work/HLSL/texture/dettail_r.png"
+#define BASE_M "D:/work/HLSL/texture/dettail_m.png"
+#define CUBE_M   "D:/work/HLSL/texture/default_reflection_cubic.dds"
+
+DECLARE_FLOAT(useMap, 0, 1, 1, "use map")
+
+
+DECLARE_CUBE(EnvMap, EnvMapSampler, CUBE_M, "cube")
+TEXTURE2D(Amap, a_Sampler, BASE_A, "abedo")
+TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
+TEXTURE2D(Rmap, r_Sampler, BASE_R, "roughness")
+TEXTURE2D(Mmap, m_Sampler, BASE_M, "metalness")
 
 struct VS_IN
 {
     float4 P_O : POSITION;
     float3 N_O : NORMAL;
+    float3 T : TANGENT;
+    float3 B : BINORMAL;
     float2 uv : TEXCOORD0;
 };
 
@@ -21,8 +38,10 @@ struct PS_IN
 {
     float4 P_P : SV_POSITION;
     float2 uv : TEXCOORD0;
-    float3 N_W : TEXCOORD1;
-    float4 P_W : TEXCOORD2;
+    float4 P_W : TEXCOORD1;
+    float3 N_O : TEXCOORD2;
+    float3 B_O : TEXCOORD3;
+    float3 T_O : TEXCOORD4;
 };
 
 PS_IN VS(VS_IN IN)
@@ -30,7 +49,8 @@ PS_IN VS(VS_IN IN)
     PS_IN OUT = (PS_IN) 0;
     OUT.P_P = mul(IN.P_O, wvp);
     OUT.P_W = mul(IN.P_O, world);
-    OUT.N_W = normalize(mul(IN.N_O, (float3x3) worldI));
+    OUT.N_O = IN.N_O;
+    OUT.uv = IN.uv;
     return OUT;
 }
 float GlV(float NoV, float k)
@@ -49,7 +69,6 @@ float G_Smith(float r, float NoV, float NoL)
     //float G_L = NoL + sqrt((NoL - NoL * R2) * NoL + R2);
     //return rcp(G_V * G_L);
 }
-
 
 float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h)
 {
@@ -149,31 +168,44 @@ float3 diffuseIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
         float VoH = saturate(dot(V, H));
         if (NoL > 0)
         {
-            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;		
-            IncidentLighting += SampleColor * NoL;            
+            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;
+            IncidentLighting += SampleColor * NoL;
         }
     }
     return IncidentLighting / NumSamples;
 }
 
-float DisneyDiffuse(float NoV , float NoL , float LoH , float R2)
+float DisneyDiffuse(float NoV, float NoL, float LoH, float R2)
 {
     float fd90 = 0.5 + 2 * LoH * LoH * R2;
     // Two schlick fresnel term
-    half lightScatter = (1 + (fd90 - 1) * pow(1 - NoL,5));
-    half viewScatter = (1 + (fd90 - 1) * pow(1 - NoV,5));
+    half lightScatter = (1 + (fd90 - 1) * pow(1 - NoL, 5));
+    half viewScatter = (1 + (fd90 - 1) * pow(1 - NoV, 5));
 
     return lightScatter * viewScatter;
 }
 
+
 float4 PS(PS_IN IN) : SV_Target
 {
+
+    float3x3 objToTangentSpace;
+    objToTangentSpace[0] = IN.B_O;
+    objToTangentSpace[1] = IN.T_O;
+    objToTangentSpace[2] = IN.N_O;
+
+    float4 Ab = lerp(abedo, Amap.Sample(a_Sampler, IN.uv), useMap);
+    float Ro = lerp(roughness, Rmap.Sample(r_Sampler, IN.uv), useMap);
+    float Me = lerp(metalness, Amap.Sample(m_Sampler, IN.uv), useMap);
+    float3 nMap = mul(objToTangentSpace,texture_to_vector(Nmap.Sample(n_Sampler, IN.uv).xyz));
+    float3 No = mul(lerp(IN.N_O, normalize(float3(IN.N_O.xy + nMap.xy, IN.N_O.z)), useMap),(float3x3)worldI);
+    //No = mul(IN.N_O, (float3x3) worldI);
+
     int lightModel = 2; //0, blinn; 1 , phon ; 2 ,BRDF
     int useIBL = 1;
-    float4 COL = { 1, 0, 1, 1 };
-    float4 A = abedo;
+    float4 COL = { 0, 0, 1, 1 };
     float3 L = normalize(myLight);
-    float3 N = IN.N_W;
+    float3 N = No;
     float3 V = normalize((viewI[3] - IN.P_W).xyz);
     float3 H = normalize(V + L);
     float NoL = dot(N, L);
@@ -181,25 +213,9 @@ float4 PS(PS_IN IN) : SV_Target
     float4 D = float4(0, 0, 0, 0);
     float4 S = float4(0, 0, 0, 0);
 
-    float4 SC = lerp(DielectricSpec, A, metalness);
-    float4 DC = A * (DielectricSpec.a * (1 - metalness));
+    float4 SC = lerp (DielectricSpec, Ab, Me);
+    float4 DC = Ab * (DielectricSpec.a * (1 - Me));
     
-    if (NoL > 0)
-    {
-        float3 R = -L - 2 * dot(N, -L) * N;
-        if (lightModel == 0)
-        {
-            D = NoL;
-            float3 R = -L - 2 * dot(N, -L) * N;
-            S = dot(R, V);
-        }
-        else if (lightModel == 1)
-        {
-            D = NoL;
-            S = dot(N, H);
-            S = pow(S, 20);
-        }
-    }
 
     if (lightModel == 2)
     {
@@ -208,21 +224,20 @@ float4 PS(PS_IN IN) : SV_Target
         float NoH = saturate(dot(N, H));
         float VoH = saturate(dot(V, H));
         float LoH = saturate(dot(L, H));
-        float R2 = roughness * roughness;
+        float R2 = Ro * Ro;
 
-        //metalness = 0;
-        D += NoL;
-        // D = DisneyDiffuse(NoV, NoL, LoH, R2);
-        S += Cook_Torrance(roughness, N, L, V, H);
+        if (NoL > 0)
+        {
+            D += NoL;
+            S += Cook_Torrance(Ro, N, L, V, H);
+        }
+
         if (useIBL == 1)
         {
-            S.xyz += EnvI * specularIBL(float3(1, 1, 1), roughness, N, V) ;
-            D.xyz += EnvI * diffuseIBL(float3(1, 1, 1), roughness, N, V);
+            S.xyz +=  EnvI * specularIBL(float3(1, 1, 1), Ro, N, V);
+            D.xyz +=  EnvI * diffuseIBL(float3(1, 1, 1), Ro, N, V);
         }
-        if (metalness == 1)
-        {
-            D = 0;
-        }
+
         COL = D * DC + S * SC;
     }
 

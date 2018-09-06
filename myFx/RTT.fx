@@ -12,7 +12,7 @@ string Script = "Technique=Main_11;";
 string ParamID = "0x003";
 
 #define PATH_D "C:/MyGit/HLSL/texture/grass_a.jpg"
-TEXTURE2D(abedo, abedo_Sampler, PATH_D, "Abedo", 0)
+TEXTURE2D(abedo, abedo_Sampler, PATH_D, "Abedo")
 
 float4 gClearColor = float4(0, 0, 0, 0);
 float gClearDepth <string UIWidget = "none";> = 1.0;
