@@ -3,7 +3,7 @@
 SCRIPT_FX("Technique=Main_11;")
 
 DECLARE_COLOR(abedo, float4(1,0.88,0.61,1), "abedo color")
-DECLARE_FLOAT(roughness, 0, 1, 0.5, "roughness")
+DECLARE_FLOAT(roughness, 0.05, 0.99, 0.5, "roughness")
 DECLARE_FLOAT(metalness, 0, 1, 1, "metalness")
 DECLARE_FLOAT(F0, 0, 1, 0.5, "fresnel")
 DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
@@ -40,10 +40,16 @@ float GlV(float NoV, float k)
 
 float G_Smith(float r, float NoV, float NoL)
 {
-    float k = (r + 1) * (r + 1) / 8;
+    //float k = (r + 1) * (r + 1) / 8;
+    float k = sqrt(2 * pow(r, 2) / PI);
     float G = GlV(NoV, k) * GlV(NoL, k);
     return G;
+    //float R2 = r * r;
+    //float G_V = NoV + sqrt((NoV - NoV * R2) * NoV + R2);
+    //float G_L = NoL + sqrt((NoL - NoL * R2) * NoL + R2);
+    //return rcp(G_V * G_L);
 }
+
 
 float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h)
 {
@@ -53,16 +59,17 @@ float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h)
     float NoL = dot(n, l);
 
     //NDF
+    //float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
     float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
 	//G
     float G = G_Smith(r, NoV, NoL);
-    //float k = (r + 1) * (r + 1) / 8;
-    //float G = GlV(NoV, k) * GlV(NoL, k);
+
 	//Fresnel
     float NoL5 = pow(1 - dot(l, h), 5);
     float F = F0 + (1 - F0) * NoL5;
     
-    float s = D * F * G / (4 * NoL * NoV);
+    float s = D * F * G /*/ (4 * NoL * NoV)*/;
+    //s = G;
     return s;
 }
 float RadicalInverse_VdC(uint bits)
@@ -129,7 +136,7 @@ float3 specularIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
 float4 PS(PS_IN IN) : SV_Target
 {
     int lightModel = 2; //0, blinn; 1 , phon ; 2 ,BRDF
-    int useIBL = 0;
+    int useIBL = 1;
     float4 COL = { 1, 0, 1, 1 };
     float4 A = abedo;
     float3 L = normalize(myLight);
@@ -155,14 +162,22 @@ float4 PS(PS_IN IN) : SV_Target
             S = dot(N, H);
             S = pow(S, 20);
         }
-        else if (lightModel == 2)
-        {
-            S = Cook_Torrance(roughness, N, L, V, H);
-            COL.xyz = S;
-        }
+
     }
-    COL.xyz = D * A + S;
-    COL.xyz += EnvI * specularIBL(float3(1, 1, 1), roughness, N, V);
+    if (lightModel == 2)
+    {
+        S = Cook_Torrance(roughness, N, L, V, H);
+        if (useIBL == 1)
+        {
+            S.xyz += S.xyz + EnvI * specularIBL(float3(1, 1, 1), roughness, N, V);
+        }
+        COL.xyz =  S;
+
+    }
+
+    
+
+    COL.xyz = S*0.04;
     
     COL.w = 1;
 
