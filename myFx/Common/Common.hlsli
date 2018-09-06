@@ -4,6 +4,7 @@ float4x4 world : WORLD;
 float4x4 worldI : WorldInverseTranspose;
 
 #define PI 3.14159
+#define DielectricSpec float4(0.22, 0.22, 0.22, 0.779)
 
 #define SCRIPT_FX(usetechnique) float Script : STANDARDSGLOBAL <\
 string UIWidget = "none";\

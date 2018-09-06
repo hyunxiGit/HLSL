@@ -54,9 +54,9 @@ float G_Smith(float r, float NoV, float NoL)
 float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h)
 {
     float r2 = r * r;
-    float NoH = dot(n, h);
-    float NoV = dot(n, v);
-    float NoL = dot(n, l);
+    float NoH = saturate(dot(n, h));
+    float NoV = saturate(dot(n, v));
+    float NoL = saturate(dot(n, l));
 
     //NDF
     //float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
@@ -133,6 +133,39 @@ float3 specularIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
     return SpecularLighting / NumSamples;
 }
 
+float3 diffuseIBL(float3 SpecularColor, float Roughness, float3 N, float3 V)
+{
+    //there is problem here to calculate the diffuse,
+    float3 IncidentLighting = 0;
+    const uint NumSamples = 50;
+    for (uint i = 0; i < NumSamples; i++)
+    {
+        float2 Xi = Hammersley(i, NumSamples);
+        float3 H = ImportanceSampleGGX(Xi, 0.99, N);
+        float3 L = 2 * dot(V, H) * H - V;
+        float NoV = saturate(dot(N, V));
+        float NoL = saturate(dot(N, L));
+        float NoH = saturate(dot(N, H));
+        float VoH = saturate(dot(V, H));
+        if (NoL > 0)
+        {
+            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;		
+            IncidentLighting += SampleColor * NoL;            
+        }
+    }
+    return IncidentLighting / NumSamples;
+}
+
+float DisneyDiffuse(float NoV , float NoL , float LoH , float R2)
+{
+    float fd90 = 0.5 + 2 * LoH * LoH * R2;
+    // Two schlick fresnel term
+    half lightScatter = (1 + (fd90 - 1) * pow(1 - NoL,5));
+    half viewScatter = (1 + (fd90 - 1) * pow(1 - NoV,5));
+
+    return lightScatter * viewScatter;
+}
+
 float4 PS(PS_IN IN) : SV_Target
 {
     int lightModel = 2; //0, blinn; 1 , phon ; 2 ,BRDF
@@ -147,38 +180,52 @@ float4 PS(PS_IN IN) : SV_Target
 
     float4 D = float4(0, 0, 0, 0);
     float4 S = float4(0, 0, 0, 0);
-    float3 R = -L - 2 * dot(N, -L) * N;
+
+    float4 SC = lerp(DielectricSpec, A, metalness);
+    float4 DC = A * (DielectricSpec.a * (1 - metalness));
     
     if (NoL > 0)
     {
-        D = NoL;
+        float3 R = -L - 2 * dot(N, -L) * N;
         if (lightModel == 0)
         {
+            D = NoL;
             float3 R = -L - 2 * dot(N, -L) * N;
             S = dot(R, V);
         }
         else if (lightModel == 1)
         {
+            D = NoL;
             S = dot(N, H);
             S = pow(S, 20);
         }
-
     }
+
     if (lightModel == 2)
     {
-        S = Cook_Torrance(roughness, N, L, V, H);
+        float NoV = saturate(dot(N, V));
+        float NoL = saturate(dot(N, L));
+        float NoH = saturate(dot(N, H));
+        float VoH = saturate(dot(V, H));
+        float LoH = saturate(dot(L, H));
+        float R2 = roughness * roughness;
+
+        //metalness = 0;
+        D += NoL;
+        // D = DisneyDiffuse(NoV, NoL, LoH, R2);
+        S += Cook_Torrance(roughness, N, L, V, H);
         if (useIBL == 1)
         {
-            S.xyz += S.xyz + EnvI * specularIBL(float3(1, 1, 1), roughness, N, V);
+            S.xyz += S.xyz + EnvI * specularIBL(float3(1, 1, 1), roughness, N, V) ;
+            D.xyz += diffuseIBL(float3(1, 1, 1), roughness, N, V) ;
         }
-        COL.xyz =  S;
-
+        if (metalness == 1)
+        {
+            D = 0;
+        }
+        COL = D * DC + S * SC;
     }
 
-    
-
-    COL.xyz = S*0.04;
-    
     COL.w = 1;
 
     return COL;
