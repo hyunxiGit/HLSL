@@ -27,7 +27,7 @@ PS_IN VS(VS_IN IN)
 
 float4 PS(PS_IN IN) : SV_Target
 {
-    float4 COL = { 1, 0, 1, 1 };
+    float4 COL = { 1, 0, AI, 1 };
     return COL;
 }
 

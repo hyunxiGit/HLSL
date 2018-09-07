@@ -1,3 +1,6 @@
+#ifndef COMMON_HLSLI
+#define COMMON_HLSLI
+
 float4x4 wvp : WorldViewProjection;
 float4x4 viewI : ViewInverse;
 float4x4 world : WORLD;
@@ -157,3 +160,5 @@ float3 RGBtoHSV(float3 RGB)
 
 float3 vector_to_texture(float3 v) { return ((v * 0.5) + float3(0.5, 0.5, 0.5));}
 float3 texture_to_vector(float3 t) { return ((t - float3(0.5, 0.5, 0.5)) * 2.0);}
+
+#endif
