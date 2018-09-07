@@ -9,10 +9,10 @@ DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
 DECLARE_FLOAT(EnvI, 0, 1, 0.5f, "cube intensity")
 
 
-#define BASE_A "D:/work/HLSL/texture/dettail_a.png"
-#define BASE_N "D:/work/HLSL/texture/dettail_n.png"
-#define BASE_R "D:/work/HLSL/texture/dettail_r.png"
-#define BASE_M "D:/work/HLSL/texture/dettail_m.png"
+#define BASE_A "C:\\Users\\hyunx\\Desktop\\detailMap\\max\\texture\\reverbank_d.tga"
+#define BASE_N "C:\\Users\\hyunx\\Desktop\\detailMap\\max\\texture\\riverbank_n.tga"
+#define BASE_R "C:\\Users\\hyunx\\Desktop\\detailMap\\max\\texture\\riverbank_r.tga"
+#define BASE_M "D:/work/HLSL/texture/defaultM.png"
 #define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
 
 DECLARE_FLOAT(useMap, 0, 1, 1, "use map")
