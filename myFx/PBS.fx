@@ -9,12 +9,19 @@ DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
 DECLARE_FLOAT(EnvI, 0, 1, 0.2f, "cube intensity")
 DECLARE_FLOAT(bumpScale, 0, 1, 0.25, "normal intensity")
 
+//office environment
+//#define BASE_A "D:/work/HLSL/texture/pbrT_a.png"
+//#define BASE_N "D:/work/HLSL/texture/grass_n.jpg"
+//#define BASE_R "D:/work/HLSL/texture/pbrT_r.png"
+//#define BASE_M "D:/work/HLSL/texture/pbrT_m.png"
+//#define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
 
-#define BASE_A "D:/work/HLSL/texture/pbrT_a.png"
-#define BASE_N "D:/work/HLSL/texture/grass_n.jpg"
-#define BASE_R "D:/work/HLSL/texture/pbrT_r.png"
-#define BASE_M "D:/work/HLSL/texture/pbrT_m.png"
-#define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
+//home environment
+#define BASE_A "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_a.png"
+#define BASE_N "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_n.png"
+#define BASE_R "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_r.png"
+#define BASE_M "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_m.png"
+#define CUBE_M "C:\\MyGit\\HLSL\\texture\\pbrT\\default_reflection_cubic.dds"
 
 DECLARE_FLOAT(useMap, 0, 1, 1, "use map")
 
