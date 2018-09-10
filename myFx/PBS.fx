@@ -10,18 +10,24 @@ DECLARE_FLOAT(EnvI, 0, 1, 0.2f, "cube intensity")
 DECLARE_FLOAT(bumpScale, 0, 1, 0.25, "normal intensity")
 
 //office environment
-//#define BASE_A "D:/work/HLSL/texture/pbrT_a.png"
-//#define BASE_N "D:/work/HLSL/texture/grass_n.jpg"
-//#define BASE_R "D:/work/HLSL/texture/pbrT_r.png"
-//#define BASE_M "D:/work/HLSL/texture/pbrT_m.png"
-//#define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
+#define BASE_A "D:/work/HLSL/texture/defaultR.png"
+#define BASE_N "D:/work/HLSL/texture/base_160.png"
+#define BASE_R "D:/work/HLSL/texture/defaultR.png"
+#define BASE_M "D:/work/HLSL/texture/defaultM.png"
+#define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
+
+#define D1_A "D:/work/HLSL/texture/grass_a.jpg"
+#define D1_N "D:/work/HLSL/texture/grass_n.jpg"
+#define D1_R "D:/work/HLSL/texture/grass_r.jpg"
+#define D1_M "D:/work/HLSL/texture/defaultM.png"
+
 
 //home environment
-#define BASE_A "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_a.png"
-#define BASE_N "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_n.png"
-#define BASE_R "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_r.png"
-#define BASE_M "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_m.png"
-#define CUBE_M "C:\\MyGit\\HLSL\\texture\\pbrT\\default_reflection_cubic.dds"
+//#define BASE_A "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_a.png"
+//#define BASE_N "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_n.png"
+//#define BASE_R "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_r.png"
+//#define BASE_M "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_m.png"
+//#define CUBE_M "C:\\MyGit\\HLSL\\texture\\pbrT\\default_reflection_cubic.dds"
 
 DECLARE_FLOAT(useMap, 0, 1, 1, "use map")
 
@@ -31,6 +37,11 @@ TEXTURE2D(Amap, a_Sampler, BASE_A, "abedo")
 TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
 TEXTURE2D(Rmap, r_Sampler, BASE_R, "roughness")
 TEXTURE2D(Mmap, m_Sampler, BASE_M, "metalness")
+
+TEXTURE2D(D1Amap, D1A_Sampler, D1_A, "d1 abedo")
+TEXTURE2D(D1Nmap, D1N_Sampler, D1_N, "d1 normal")
+TEXTURE2D(D1Rmap, D1R_Sampler, D1_R, "d1 roughness")
+TEXTURE2D(D1Mmap, D1M_Sampler, D1_M, "d1 metalness")
 
 struct VS_IN
 {
@@ -63,75 +74,33 @@ PS_IN VS(VS_IN IN)
     return OUT;
 }
 
-float3 applyNormal(float3 N_O, float3 B_O, float3 T_O, float3 bump)
+void useMapBlend(inout float4 Ab, inout float Ro, inout float Me, inout float3 no, float useMap)
 {
-    float3 N = mul(N_O, world);
-    float3 B = mul(B_O, world);
-    float3 T = mul(T_O, world);
-
-
-    //blend1
-    float scale = 0.5f;
-    float3 Nn = bumpScale * (bump.x * T - bump.y * B) + bump.z * N;
-    Nn = normalize(Nn);
-    return Nn;
-}
-
-float3 blendNormal(float3 N_O, float3 B_O, float3 T_O, float3 bump)
-{
-    float3 N_W = mul(N_O, world);
-    float3 B_W = mul(B_O, world);
-    float3 T_W = mul(T_O, world);
-
-    float3x3 MTW;
-    MTW[0] = B_O;
-    MTW[1] = T_O;
-    MTW[2] = N_O;
-
-
-    //blend1
-    float scale = 0.5f;
-    float3 N = bumpScale * (bump.x * T_W - bump.y * B_W) + bump.z * N_W;
-    N = normalize(N);
-    
-    //blend2
-    //float3 N = float3(N_W.xy + mul(bump, MTW).xy, N_W.z);
-    //N = normalize(N);
-
-    //blend3
-    //float3 n1 = mul(bump, MTW);
-    //float3 n2 = N_W;
-    //float3x3 nBasis = float3x3(
-    //float3(n1.z, n1.y, -n1.x), // +90 degree rotation around y axis
-    //float3(n1.x, n1.z, -n1.y), // -90 degree rotation around x axis
-    //float3(n1.x, n1.y, n1.z));
-
-    //float3 r = normalize(n2.x * nBasis[0] + n2.y * nBasis[1] + n2.z * nBasis[2]);
-    //N = r * 0.5 + 0.5;
-
-    return N;
-}
-
-void applyN(inout float3 NM, float3 B, float3 T, float3 N)
-{
-    NM = normalize(1 * (NM.x * T + NM.y * B) + NM.z * N);
+    Ab = lerp(abedo, Ab, useMap);
+    Ro = lerp(roughness, Ro, useMap);
+    Me = lerp(metalness, Me, useMap);
+    no = lerp(float3(0, 0, 1), no, useMap);
 }
 
 float4 PS(PS_IN IN) : SV_Target
 {
-    float3x3 objToTangentSpace;
-    objToTangentSpace[0] = IN.B_O;
-    objToTangentSpace[1] = IN.T_O;
-    objToTangentSpace[2] = IN.N_O;
 
-    float4 Ab = lerp(abedo, Amap.Sample(a_Sampler, IN.uv), useMap);
-    float Ro = lerp(roughness, Rmap.Sample(r_Sampler, IN.uv), useMap);
-    float Me = lerp(metalness, Amap.Sample(m_Sampler, IN.uv), useMap);
-  
-    float3 nMap = texture_to_vector(Nmap.Sample(n_Sampler, IN.uv).xyz);
-    //nMap.g = -nMap.g;
-    float3 N = applyNormal(IN.N_O, IN.B_O, IN.T_O, nMap);
-    //N = mul(IN.N_O, world);
+    float3 N_W = mul(IN.N_O, world);
+    float3 B_W = mul(IN.B_O, world);
+    float3 T_W = mul(IN.T_O, world);
+
+    float4 Ab = Amap.Sample(a_Sampler, IN.uv);
+    float Ro = Rmap.Sample(r_Sampler, IN.uv);
+    float Me = Amap.Sample(m_Sampler, IN.uv);
+
+
+    float3 nMap = processNMap(Nmap, n_Sampler, IN.uv);
+    float3 d1nMap = processNMap(D1Nmap, D1N_Sampler, IN.uv);
+
+    float3 BN = blendNormal(nMap, d1nMap);    
+
+    useMapBlend(Ab, Ro, Me,BN, useMap);
+    float3 N = applyN(BN, B_W, T_W, N_W, bumpScale);
 
     int useIBL = 1;
     float4 COL = { 0, 0, 1, 1 };
@@ -167,6 +136,8 @@ float4 PS(PS_IN IN) : SV_Target
 
     COL = D * DC + S * SC;
     COL.w = 1;
+
+   // COL = dot(N, L);
 
     return COL;
 }

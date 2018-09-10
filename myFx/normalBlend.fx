@@ -8,6 +8,7 @@ DECLARE_FLOAT(mode, 0, 10, 0, "normal mode")
 DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
 TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
 TEXTURE2D(N1map, n1_Sampler, BASE_N1, "normal")
+DECLARE_FLOAT(bumpScale, 0, 1, 0.25, "normal intensity")
 
 struct VS_IN
 {
@@ -44,7 +45,7 @@ PS_IN VS(VS_IN IN)
 
 void applyN(inout float3 NM, float3 B, float3 T, float3 N)
 {
-    NM = normalize(1 * (NM.x * T + NM.y * B) + NM.z * N);
+    NM = normalize(bumpScale * (NM.x * T + NM.y * B) + NM.z * N);
 }
 
 float4 PS(PS_IN IN) : SV_Target

@@ -160,5 +160,23 @@ float3 RGBtoHSV(float3 RGB)
 
 float3 vector_to_texture(float3 v) { return ((v * 0.5) + float3(0.5, 0.5, 0.5));}
 float3 texture_to_vector(float3 t) { return ((t - float3(0.5, 0.5, 0.5)) * 2.0);}
+float3 applyN(float3 NM, float3 B, float3 T, inout float3 N, float bumpScale)
+{
+    float3 resultN = normalize(bumpScale * (NM.x * T + NM.y * B) + NM.z * N);
+    return resultN;
+}
+
+float3 processNMap(Texture2D map, SamplerState samp, float2 uv)
+{
+    float3 nMap = texture_to_vector(map.Sample(samp, uv).xyz);
+    nMap.g = -nMap.g;
+    return nMap;
+}
+
+float3 blendNormal(float3 n1, float3 n2)
+{
+    float3 BN = normalize(float3(n1.xy + n2.xy, n1.z * n2.z));
+    return BN;
+}
 
 #endif
