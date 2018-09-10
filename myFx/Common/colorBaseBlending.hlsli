@@ -60,14 +60,19 @@ void DetailBlend(inout textureSet ts[3], float weight[2],float blendStrength)
     textureSet d1 = ts[1];
     textureSet d2 = ts[2];
 
+    //abedo
     float4 ab_d = float4(0,0,0,0);
+    float3 ab_n = float3(0, 0, 0);
+
     for (int i = 0; i < n; i++)
     {
         ab_d += ts[i + 1].ab * weight[i];
+        ab_n += ts[i + 1].no * weight[i];
     }
-    //abedo
     base.ab = base.ab * (1 - blendStrength) + ab_d * blendStrength;
-    //normal
+
+    ab_n = blendNormal(base.no, ab_n);
+    base.no = base.no * (1 - blendStrength) + ab_n * blendStrength;
 
     ts[0] = base;
 }

@@ -44,12 +44,12 @@ TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
 TEXTURE2D(Rmap, r_Sampler, BASE_R, "roughness")
 TEXTURE2D(Mmap, m_Sampler, BASE_M, "metalness")
 
-DECLARE_COLOR(d1HSV, float4(0.299f, 0.206f, 0.12f, 1.0f), "d1")
+DECLARE_COLOR(d1HSV,float4(0.23f, 0.46f, 0.12f, 1.0f), "d1")
 TEXTURE2D(D1Amap, D1A_Sampler, D1_A, "d1 abedo")
 TEXTURE2D(D1Nmap, D1N_Sampler, D1_N, "d1 normal")
 TEXTURE2D(D1Rmap, D1R_Sampler, D1_R, "d1 roughness")
 
-DECLARE_COLOR(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2")
+DECLARE_COLOR(d2HSV, float4(0.299f, 0.206f, 0.12f, 1.0f), "d2")
 TEXTURE2D(D2Amap, D2A_Sampler, D2_A, "d2 abedo")
 TEXTURE2D(D2Nmap, D2N_Sampler, D2_N, "d2 normal")
 TEXTURE2D(D2Rmap, D2R_Sampler, D2_R, "d2 roughness")
@@ -146,7 +146,7 @@ float4 PS(PS_IN IN) : SV_Target
 
     float Ro = base.ro;
     float Me = base.me;
-    float3 nMap = base.no;
+    float3 nMap = ts[0].no;
 
     float3 N = applyN(nMap, B_W, T_W, N_W, bumpScale);
 
