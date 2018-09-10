@@ -57,29 +57,24 @@ PS_IN VS(VS_IN IN)
     OUT.P_P = mul(IN.P_O, wvp);
     OUT.P_W = mul(IN.P_O, world);
     OUT.N_O = IN.N;
-    OUT.B_O = IN.T;
-    OUT.T_O = IN.B;
+    OUT.B_O = IN.B;
+    OUT.T_O = IN.T;
     OUT.uv = IN.uv;
     return OUT;
 }
 
 float3 applyNormal(float3 N_O, float3 B_O, float3 T_O, float3 bump)
 {
-    float3 N_W = mul(N_O, world);
-    float3 B_W = mul(B_O, world);
-    float3 T_W = mul(T_O, world);
-
-    float3x3 MTW;
-    MTW[0] = B_O;
-    MTW[1] = T_O;
-    MTW[2] = N_O;
+    float3 N = mul(N_O, world);
+    float3 B = mul(B_O, world);
+    float3 T = mul(T_O, world);
 
 
     //blend1
     float scale = 0.5f;
-    float3 N = bumpScale * (bump.x * T_W - bump.y * B_W) + bump.z * N_W;
-    N = normalize(N);
-    return N;
+    float3 Nn = bumpScale * (bump.x * T - bump.y * B) + bump.z * N;
+    Nn = normalize(Nn);
+    return Nn;
 }
 
 float3 blendNormal(float3 N_O, float3 B_O, float3 T_O, float3 bump)
@@ -117,6 +112,11 @@ float3 blendNormal(float3 N_O, float3 B_O, float3 T_O, float3 bump)
     return N;
 }
 
+void applyN(inout float3 NM, float3 B, float3 T, float3 N)
+{
+    NM = normalize(1 * (NM.x * T + NM.y * B) + NM.z * N);
+}
+
 float4 PS(PS_IN IN) : SV_Target
 {
     float3x3 objToTangentSpace;
@@ -129,12 +129,13 @@ float4 PS(PS_IN IN) : SV_Target
     float Me = lerp(metalness, Amap.Sample(m_Sampler, IN.uv), useMap);
   
     float3 nMap = texture_to_vector(Nmap.Sample(n_Sampler, IN.uv).xyz);
+    //nMap.g = -nMap.g;
     float3 N = applyNormal(IN.N_O, IN.B_O, IN.T_O, nMap);
-
+    //N = mul(IN.N_O, world);
 
     int useIBL = 1;
     float4 COL = { 0, 0, 1, 1 };
-    float3 L = normalize(myLight);
+    float3 L = normalize(myLight - IN.P_W.xyz);
     float3 V = normalize((viewI[3] - IN.P_W).xyz);
     float3 H = normalize(V + L);
 
@@ -165,7 +166,6 @@ float4 PS(PS_IN IN) : SV_Target
     }
 
     COL = D * DC + S * SC;
-
     COL.w = 1;
 
     return COL;

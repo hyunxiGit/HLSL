@@ -78,7 +78,7 @@ float3 specularIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specul
             SpecularLighting += SampleColor * F * G * VoH / (NoH * NoV);
         }
     }
-    return SpecularLighting / NumSamples;
+    return max(SpecularLighting / NumSamples,0);
 }
 
 float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 SpecularColor, float Roughness, float3 N, float3 V)
@@ -101,7 +101,7 @@ float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specula
             IncidentLighting += SampleColor * NoL;
         }
     }
-    return IncidentLighting / NumSamples;
+    return max(IncidentLighting / NumSamples, 0);
 }
 
 
