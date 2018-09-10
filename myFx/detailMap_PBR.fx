@@ -38,9 +38,6 @@ DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 //#define BASE_M "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_m.png"
 //#define CUBE_M "C:\\MyGit\\HLSL\\texture\\pbrT\\default_reflection_cubic.dds"
 
-DECLARE_FLOAT(useMap, 0, 1, 1, "use map")
-
-
 DECLARE_CUBE(EnvMap, EnvMapSampler, CUBE_M, "cube")
 TEXTURE2D(Amap, a_Sampler, BASE_A, "abedo")
 TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
@@ -104,33 +101,54 @@ float4 PS(PS_IN IN) : SV_Target
     float3 N_W = mul(IN.N_O, world);
     float3 B_W = mul(IN.B_O, world);
     float3 T_W = mul(IN.T_O, world);
-
-    float4 Ab = Amap.Sample(a_Sampler, IN.uv);
-    float Ro = Rmap.Sample(r_Sampler, IN.uv);
-    float Me = Amap.Sample(m_Sampler, IN.uv);
-
-
-    float3 nMap = processNMap(Nmap, n_Sampler, IN.uv);
-    float3 d1nMap = processNMap(D1Nmap, D1N_Sampler, IN.uv);
-
-    float3 BN = blendNormal(nMap, d1nMap);
-    //detail map blending
+    //prepare map
+    textureSet base;
+    base.ab = Amap.Sample(a_Sampler, IN.uv);
+    base.no = processNMap(Nmap, n_Sampler, IN.uv);
+    base.ro = Rmap.Sample(r_Sampler, IN.uv);
+    base.me = Amap.Sample(m_Sampler, IN.uv);
 
     int UVscale = 5;
+
+    textureSet tsd1;
+    tsd1.ab = D1Amap.Sample(D1A_Sampler, IN.uv * UVscale);
+    tsd1.no = processNMap(D1Nmap, D1N_Sampler, IN.uv * UVscale);
+    //tsd1.ro = Ro;
+    //tsd1.me = Me;
+
+    textureSet tsd2;
+    tsd2.ab = D2Amap.Sample(D2A_Sampler, IN.uv * UVscale);
+    tsd2.no = processNMap(D2Nmap, D2N_Sampler, IN.uv * UVscale);
+    //tsd2.ro = Ro;
+    //tsd2.me = Me;
+
+
+    //prepare detail map
+
     float weight[2] = { 0, 0 };
-    getWeight(Ab, weight, d1HSV, d2HSV, n);
+    weightData wd;
+    wd.weight = weight;
+    wd.blendColor[0] = base.ab;
+    wd.blendColor[1] = d1HSV;
+    wd.blendColor[2] = d2HSV;
+    wd.blendPower = n;
+    getWeight(wd);
 
-    float blend0 = 1.0f - m;
-    float blend1 = m;
+    //float3 BN = blendNormal(nMap, d1nMap);
 
-    //abedo
-    float4 d1_a = D1Amap.Sample(D1A_Sampler, IN.uv * UVscale);
-    float4 d2_a = D2Amap.Sample(D2A_Sampler, IN.uv * UVscale);
-    Ab = Ab * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
+    textureSet ts[3];
+    ts[0] = base;
+    ts[1] = tsd1;
+    ts[2] = tsd2;
 
-    //
-    useMapBlend(Ab, Ro, Me, BN, useMap);
-    float3 N = applyN(BN, B_W, T_W, N_W, bumpScale);
+    DetailBlend(ts, wd.weight, m);
+    float4 Ab = ts[0].ab;
+
+    float Ro = base.ro;
+    float Me = base.me;
+    float3 nMap = base.no;
+
+    float3 N = applyN(nMap, B_W, T_W, N_W, bumpScale);
 
     int useIBL = 1;
     float4 COL = { 0, 0, 1, 1 };

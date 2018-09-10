@@ -4,19 +4,37 @@
 #include "pbrBase.hlsli"
 #define LIS float4(1,0,0,0)
 
-void getWeight(float4 baseColor, inout float weight[2], float4 d1HSV, float4 d2HSV, float blendPower)
+struct weightData
 {
+    float weight[2];
+    float4 blendColor[3];
+    float blendPower;
+};
+
+struct textureSet
+{
+    float4 ab;
+    float3 no;
+    float  ro;
+    float  me;
+};
+
+void getWeight(inout weightData wd)
+{
+    int n = 2;
     float4 col;
-    float3 bHSV = RGBtoHSV(baseColor.rgb);
+    float3 bHSV = RGBtoHSV(wd.blendColor[0].rgb);
 
-    //calculate distance 
+    float3 detailVec[2];
+    float distance[2];
 
-    float3 detailVec[2] = { RGBtoHSV(d1HSV.xyz), RGBtoHSV(d2HSV.xyz) };
-    float distance[2] = { 0, 0 };
     float C = 0;
-    
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < n; i++)
     {
+        distance[i] = 0;
+
+        detailVec[i] = RGBtoHSV(wd.blendColor[i+1].xyz);
+
         float3 v;
         v.x = bHSV.x - detailVec[i].x;
         v.y = bHSV.y - detailVec[i].y;
@@ -24,16 +42,33 @@ void getWeight(float4 baseColor, inout float weight[2], float4 d1HSV, float4 d2H
 
         v.x = min(v.x, 1.0 - v.x);
 
-        float dis = 1.0f / pow(dot(v, v), blendPower);
+        float dis = 1.0f / pow(dot(v, v), wd.blendPower);
         distance[i] = dis;
         C += dis;
     }
 
-    for (int j = 0; j < 2; j++)
+    for (int j = 0; j < n; j++)
     {
-        weight[j] = saturate(distance[j] / C);
+        wd.weight[j] = saturate(distance[j] / C);
     }
 }
 
+void DetailBlend(inout textureSet ts[3], float weight[2],float blendStrength)
+{
+    int n = 2;
+    textureSet base = ts[0];
+    textureSet d1 = ts[1];
+    textureSet d2 = ts[2];
 
+    float4 ab_d = float4(0,0,0,0);
+    for (int i = 0; i < n; i++)
+    {
+        ab_d += ts[i + 1].ab * weight[i];
+    }
+    //abedo
+    base.ab = base.ab * (1 - blendStrength) + ab_d * blendStrength;
+    //normal
+
+    ts[0] = base;
+}
 #endif
