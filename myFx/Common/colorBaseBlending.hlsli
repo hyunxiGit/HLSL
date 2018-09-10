@@ -2,7 +2,6 @@
 #define COLORBASEBLENDING_HLSLI
 #include "Common.hlsli"
 #include "pbrBase.hlsli"
-#define LIS float4(1,0,0,0)
 
 struct weightData
 {
@@ -62,17 +61,23 @@ void DetailBlend(inout textureSet ts[3], float weight[2],float blendStrength)
 
     //abedo
     float4 ab_d = float4(0,0,0,0);
-    float3 ab_n = float3(0, 0, 0);
+    float3 no_d = float3(0, 0, 0);
+    float  ro_d = 0;
+    float  me_d = 0;
 
     for (int i = 0; i < n; i++)
     {
         ab_d += ts[i + 1].ab * weight[i];
-        ab_n += ts[i + 1].no * weight[i];
+        no_d += ts[i + 1].no * weight[i];
+        ro_d += ts[i + 1].ro * weight[i];
+        me_d += ts[i + 1].me * weight[i];
     }
     base.ab = base.ab * (1 - blendStrength) + ab_d * blendStrength;
 
-    ab_n = blendNormal(base.no, ab_n);
-    base.no = base.no * (1 - blendStrength) + ab_n * blendStrength;
+    no_d = blendNormal(base.no, no_d);
+    base.no = base.no * (1 - blendStrength) + no_d * blendStrength;
+    base.ro = base.ro * (1 - blendStrength) + ro_d * blendStrength;
+    base.me = base.me * (1 - blendStrength) + me_d * blendStrength;
 
     ts[0] = base;
 }

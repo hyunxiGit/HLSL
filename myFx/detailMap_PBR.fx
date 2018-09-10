@@ -19,16 +19,18 @@ DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 #define BASE_A "D:/work/HLSL/texture/blendBase.png"
 #define BASE_N "D:/work/HLSL/texture/base_160.png"
 #define BASE_R "D:/work/HLSL/texture/defaultR.png"
-#define BASE_M "D:/work/HLSL/texture/defaultM.png"
+#define BASE_M "D:/work/HLSL/texture/pbrT_m.png"
 #define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
 
-#define D1_A "D:/work/HLSL/texture/grass_a.jpg"
-#define D1_N "D:/work/HLSL/texture/grass_n.jpg"
-#define D1_R "D:/work/HLSL/texture/grass_r.jpg"
+#define D1_A "D:/work/HLSL/texture/d2_ab.jpg"
+#define D1_N "D:/work/HLSL/texture/d2_no.jpg"
+#define D1_R "D:/work/HLSL/texture/d2_r.jpg"
+#define D1_M "D:/work/HLSL/texture/defaultM.png"
 
-#define D2_A "D:/work/HLSL/texture/earth_a.jpg"
-#define D2_N "D:/work/HLSL/texture/earth_n.jpg"
-#define D2_R "D:/work/HLSL/texture/earth_r.jpg"
+#define D2_A "D:/work/HLSL/texture/d1_ab.jpg"
+#define D2_N "D:/work/HLSL/texture/d1_no.jpg"
+#define D2_R "D:/work/HLSL/texture/d1_ro.jpg"
+#define D2_M "D:/work/HLSL/texture/defaultM.png"
 
 
 //home environment
@@ -48,11 +50,13 @@ DECLARE_COLOR(d1HSV,float4(0.23f, 0.46f, 0.12f, 1.0f), "d1")
 TEXTURE2D(D1Amap, D1A_Sampler, D1_A, "d1 abedo")
 TEXTURE2D(D1Nmap, D1N_Sampler, D1_N, "d1 normal")
 TEXTURE2D(D1Rmap, D1R_Sampler, D1_R, "d1 roughness")
+TEXTURE2D(D1Mmap, D1M_Sampler, D1_M, "d1 metalness")
 
 DECLARE_COLOR(d2HSV, float4(0.299f, 0.206f, 0.12f, 1.0f), "d2")
 TEXTURE2D(D2Amap, D2A_Sampler, D2_A, "d2 abedo")
 TEXTURE2D(D2Nmap, D2N_Sampler, D2_N, "d2 normal")
 TEXTURE2D(D2Rmap, D2R_Sampler, D2_R, "d2 roughness")
+TEXTURE2D(D2Mmap, D2M_Sampler, D2_M, "d2 metalness")
 
 struct VS_IN
 {
@@ -95,36 +99,32 @@ void useMapBlend(inout float4 Ab, inout float Ro, inout float Me, inout float3 n
 
 float4 PS(PS_IN IN) : SV_Target
 {
-
-    float4 a = LIS;
-
     float3 N_W = mul(IN.N_O, world);
     float3 B_W = mul(IN.B_O, world);
     float3 T_W = mul(IN.T_O, world);
+
     //prepare map
     textureSet base;
     base.ab = Amap.Sample(a_Sampler, IN.uv);
     base.no = processNMap(Nmap, n_Sampler, IN.uv);
     base.ro = Rmap.Sample(r_Sampler, IN.uv);
-    base.me = Amap.Sample(m_Sampler, IN.uv);
+    base.me = Mmap.Sample(m_Sampler, IN.uv);
 
     int UVscale = 5;
 
     textureSet tsd1;
     tsd1.ab = D1Amap.Sample(D1A_Sampler, IN.uv * UVscale);
     tsd1.no = processNMap(D1Nmap, D1N_Sampler, IN.uv * UVscale);
-    //tsd1.ro = Ro;
-    //tsd1.me = Me;
+    tsd1.ro = D1Rmap.Sample(D1R_Sampler, IN.uv * UVscale);
+    tsd1.me = D1Mmap.Sample(D1M_Sampler, IN.uv * UVscale);
 
     textureSet tsd2;
     tsd2.ab = D2Amap.Sample(D2A_Sampler, IN.uv * UVscale);
     tsd2.no = processNMap(D2Nmap, D2N_Sampler, IN.uv * UVscale);
-    //tsd2.ro = Ro;
-    //tsd2.me = Me;
-
+    tsd2.ro = D2Rmap.Sample(D2R_Sampler, IN.uv * UVscale);
+    tsd2.me = D2Mmap.Sample(D2M_Sampler, IN.uv * UVscale);
 
     //prepare detail map
-
     float weight[2] = { 0, 0 };
     weightData wd;
     wd.weight = weight;
@@ -134,8 +134,6 @@ float4 PS(PS_IN IN) : SV_Target
     wd.blendPower = n;
     getWeight(wd);
 
-    //float3 BN = blendNormal(nMap, d1nMap);
-
     textureSet ts[3];
     ts[0] = base;
     ts[1] = tsd1;
@@ -143,15 +141,17 @@ float4 PS(PS_IN IN) : SV_Target
 
     DetailBlend(ts, wd.weight, m);
     float4 Ab = ts[0].ab;
+    float Ro = ts[0].ro;
+    float Me = ts[0].me;
+    float3 No = ts[0].no;
 
-    float Ro = base.ro;
-    float Me = base.me;
-    float3 nMap = ts[0].no;
 
-    float3 N = applyN(nMap, B_W, T_W, N_W, bumpScale);
+    float3 N = applyN(No, B_W, T_W, N_W, bumpScale);
 
+
+    //prepare PBR
     int useIBL = 1;
-    float4 COL = { 0, 0, 1, 1 };
+    float4 COL = { 0, 0, 0, 0 };
     float3 L = normalize(myLight - IN.P_W.xyz);
     float3 V = normalize((viewI[3] - IN.P_W).xyz);
     float3 H = normalize(V + L);
@@ -186,7 +186,6 @@ float4 PS(PS_IN IN) : SV_Target
     COL.w = 1;
 
    // COL = dot(N, L);
-
     return COL;
 }
 
