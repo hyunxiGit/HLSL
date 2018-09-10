@@ -3,10 +3,13 @@
 #include "Common.hlsli"
 #include "pbrBase.hlsli"
 
+//detail map amount
+#define da 4
+#define da_ 5
 struct weightData
 {
-    float weight[2];
-    float4 blendColor[3];
+    float weight[da];
+    float4 blendColor[da_];
     float blendPower;
 };
 
@@ -20,15 +23,14 @@ struct textureSet
 
 void getWeight(inout weightData wd)
 {
-    int n = 2;
     float4 col;
     float3 bHSV = RGBtoHSV(wd.blendColor[0].rgb);
 
-    float3 detailVec[2];
-    float distance[2];
+    float3 detailVec[da];
+    float distance[da];
 
     float C = 0;
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < da; i++)
     {
         distance[i] = 0;
 
@@ -46,18 +48,15 @@ void getWeight(inout weightData wd)
         C += dis;
     }
 
-    for (int j = 0; j < n; j++)
+    for (int j = 0; j < da; j++)
     {
         wd.weight[j] = saturate(distance[j] / C);
     }
 }
 
-void DetailBlend(inout textureSet ts[3], float weight[2],float blendStrength)
+void DetailBlend(inout textureSet ts[da_], float weight[da], float blendStrength)
 {
-    int n = 2;
     textureSet base = ts[0];
-    textureSet d1 = ts[1];
-    textureSet d2 = ts[2];
 
     //abedo
     float4 ab_d = float4(0,0,0,0);
@@ -65,7 +64,7 @@ void DetailBlend(inout textureSet ts[3], float weight[2],float blendStrength)
     float  ro_d = 0;
     float  me_d = 0;
 
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < da; i++)
     {
         ab_d += ts[i + 1].ab * weight[i];
         no_d += ts[i + 1].no * weight[i];
