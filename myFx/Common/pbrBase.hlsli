@@ -132,8 +132,8 @@ float DisneyDiffuse(float NoV, float NoL, float LoH, float R2)
 {
     float fd90 = 0.5 + 2 * LoH * LoH * R2;
     // Two schlick fresnel term
-    half lightScatter = (1 + (fd90 - 1) * pow(1 - NoL, 5));
-    half viewScatter = (1 + (fd90 - 1) * pow(1 - NoV, 5));
+    float lightScatter = (1 + (fd90 - 1) * pow(1 - NoL, 5));
+    float viewScatter = (1 + (fd90 - 1) * pow(1 - NoV, 5));
 
     return lightScatter * viewScatter;
 }

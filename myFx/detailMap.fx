@@ -130,8 +130,7 @@ void getWeightImg(float4 baseColor, float4 vertexColor , int C, inout float weig
         float3 V2 = d2HSV * vertexColor.g;
         float4 b_v = float4(baseColor.xyz * (1 - a) + V1 + V2, 1);
         getWeight(b_v, weight);
-    }
-    
+    }  
 }
 
 float3 blend(float3 a, float3 b)

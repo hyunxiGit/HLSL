@@ -1,7 +1,9 @@
+#include "Common/colorBaseBlending.hlsli"
 #include "Common/pbrBase.hlsli"
 SCRIPT_FX("Technique=Main_11;")
 
 DECLARE_COLOR(abedo, float4(1,0.85,0.61,1), "abedo color")
+//DECLARE_COLOR(abedo, LIS, "abedo color")
 DECLARE_FLOAT(roughness, 0.05, 0.99, 0.5, "roughness")
 DECLARE_FLOAT(metalness, 0, 1, 1, "metalness")
 DECLARE_FLOAT(F0, 0, 1, 0.2, "fresnel")
@@ -9,8 +11,12 @@ DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
 DECLARE_FLOAT(EnvI, 0, 1, 0.2f, "cube intensity")
 DECLARE_FLOAT(bumpScale, 0, 1, 0.25, "normal intensity")
 
+DECLARE_FLOAT_UI(n, 0.0f, 15.0f, 8, "blend power", 1)
+DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
+
+
 //office environment
-#define BASE_A "D:/work/HLSL/texture/defaultR.png"
+#define BASE_A "D:/work/HLSL/texture/blendBase.png"
 #define BASE_N "D:/work/HLSL/texture/base_160.png"
 #define BASE_R "D:/work/HLSL/texture/defaultR.png"
 #define BASE_M "D:/work/HLSL/texture/defaultM.png"
@@ -19,7 +25,10 @@ DECLARE_FLOAT(bumpScale, 0, 1, 0.25, "normal intensity")
 #define D1_A "D:/work/HLSL/texture/grass_a.jpg"
 #define D1_N "D:/work/HLSL/texture/grass_n.jpg"
 #define D1_R "D:/work/HLSL/texture/grass_r.jpg"
-#define D1_M "D:/work/HLSL/texture/defaultM.png"
+
+#define D2_A "D:/work/HLSL/texture/earth_a.jpg"
+#define D2_N "D:/work/HLSL/texture/earth_n.jpg"
+#define D2_R "D:/work/HLSL/texture/earth_r.jpg"
 
 
 //home environment
@@ -38,10 +47,15 @@ TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
 TEXTURE2D(Rmap, r_Sampler, BASE_R, "roughness")
 TEXTURE2D(Mmap, m_Sampler, BASE_M, "metalness")
 
+DECLARE_COLOR(d1HSV, float4(0.299f, 0.206f, 0.12f, 1.0f), "d1")
 TEXTURE2D(D1Amap, D1A_Sampler, D1_A, "d1 abedo")
 TEXTURE2D(D1Nmap, D1N_Sampler, D1_N, "d1 normal")
 TEXTURE2D(D1Rmap, D1R_Sampler, D1_R, "d1 roughness")
-TEXTURE2D(D1Mmap, D1M_Sampler, D1_M, "d1 metalness")
+
+DECLARE_COLOR(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2")
+TEXTURE2D(D2Amap, D2A_Sampler, D2_A, "d2 abedo")
+TEXTURE2D(D2Nmap, D2N_Sampler, D2_N, "d2 normal")
+TEXTURE2D(D2Rmap, D2R_Sampler, D2_R, "d2 roughness")
 
 struct VS_IN
 {
@@ -85,6 +99,8 @@ void useMapBlend(inout float4 Ab, inout float Ro, inout float Me, inout float3 n
 float4 PS(PS_IN IN) : SV_Target
 {
 
+    float4 a = LIS;
+
     float3 N_W = mul(IN.N_O, world);
     float3 B_W = mul(IN.B_O, world);
     float3 T_W = mul(IN.T_O, world);
@@ -98,7 +114,21 @@ float4 PS(PS_IN IN) : SV_Target
     float3 d1nMap = processNMap(D1Nmap, D1N_Sampler, IN.uv);
 
     float3 BN = blendNormal(nMap, d1nMap);
+    //detail map blending
 
+    int UVscale = 5;
+    float weight[2] = { 0, 0 };
+    getWeight(Ab, weight, d1HSV, d2HSV, n);
+
+    float blend0 = 1.0f - m;
+    float blend1 = m;
+
+    //abedo
+    float4 d1_a = D1Amap.Sample(D1A_Sampler, IN.uv * UVscale);
+    float4 d2_a = D2Amap.Sample(D2A_Sampler, IN.uv * UVscale);
+    Ab = Ab * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
+
+    //
     useMapBlend(Ab, Ro, Me, BN, useMap);
     float3 N = applyN(BN, B_W, T_W, N_W, bumpScale);
 
