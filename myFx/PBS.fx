@@ -10,15 +10,15 @@ DECLARE_FLOAT(EnvI, 0, 1, 0.2f, "cube intensity")
 DECLARE_FLOAT(bumpScale, 0, 1, 0.25, "normal intensity")
 
 //office environment
-#define BASE_A "D:/work/HLSL/texture/defaultR.png"
-#define BASE_N "D:/work/HLSL/texture/base_160.png"
-#define BASE_R "D:/work/HLSL/texture/defaultR.png"
-#define BASE_M "D:/work/HLSL/texture/defaultM.png"
+#define BASE_A "D:/work/HLSL/texture/pbrT_a.png"
+#define BASE_N "D:/work/HLSL/texture/pbrT_n.png"
+#define BASE_R "D:/work/HLSL/texture/pbrT_r.png"
+#define BASE_M "D:/work/HLSL/texture/pbrT_m.png"
 #define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
 
-#define D1_A "D:/work/HLSL/texture/grass_a.jpg"
-#define D1_N "D:/work/HLSL/texture/grass_n.jpg"
-#define D1_R "D:/work/HLSL/texture/grass_r.jpg"
+#define D1_A "D:/work/HLSL/texture/defaultR.png"
+#define D1_N "D:/work/HLSL/texture/default_n.png"
+#define D1_R "D:/work/HLSL/texture/defaultR.png"
 #define D1_M "D:/work/HLSL/texture/defaultM.png"
 
 
@@ -125,20 +125,25 @@ float4 PS(PS_IN IN) : SV_Target
     {
         D += NoL;
         // D = DisneyDiffuse(NoV, NoL, LoH, R2);
-        S += Cook_Torrance(Ro, N, L, V, H, F0);
+        S += Cook_Torrance(Ro, N, L, V, H, abedo.xyz, metalness);
     }
+
 
     if (useIBL == 1)
     {
         S.xyz += EnvI * specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
         D.xyz += EnvI * diffuseIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
     }
+    
+
 
     COL = D * DC + S * SC;
+    
     COL.w = 1;
-
+    float3 F = Cook_Torrance2(Ro, N, L, V, H, abedo.xyz, metalness);
    // COL = dot(N, L);
 
+    COL.xyz = F;
     return COL;
 }
 

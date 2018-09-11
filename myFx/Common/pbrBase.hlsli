@@ -104,8 +104,15 @@ float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specula
     return max(IncidentLighting / NumSamples, 0);
 }
 
+float3 fresnelSchlick( float NoV , float3 surfaceColor, float metalic)
+{
+    float3 F0 = lerp(float3(0.004, 0.004, 0.004), surfaceColor, metalic);
+    float NoV5 = pow(1 - NoV, 5);
+    float3 F = F0 + (1 - F0) * NoV5;
+    return F;
+}
 
-float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h , float F0)
+float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h , float3 surfaceColor,float metalic)
 {
     float r2 = r * r;
     float NoH = saturate(dot(n, h));
@@ -119,14 +126,33 @@ float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h , float F0)
     float G = G_Smith(r, NoV, NoL);
 
 	//Fresnel
-    float NoL5 = pow(1 - dot(l, h), 5);
-    float F = F0 + (1 - F0) * NoL5;
+    float3 F = fresnelSchlick(NoV, surfaceColor, metalic);
     
-    float s = D * F * G /*/ (4 * NoL * NoV)*/;
+    float s = D * F * G / (4 * NoL * NoV);
     //s = G;
     return s;
 }
 
+float3 Cook_Torrance2(float r, float3 n, float3 l, float3 v, float3 h, float3 surfaceColor, float metalic)
+{
+    float r2 = r * r;
+    float NoH = saturate(dot(n, h));
+    float NoV = saturate(dot(n, v));
+    float NoL = saturate(dot(n, l));
+
+    //NDF
+    //float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
+    float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
+	//G
+    float G = G_Smith(r, NoV, NoL);
+
+	//Fresnel
+    float3 F = fresnelSchlick(NoV, surfaceColor, metalic);
+    
+    float3 s = D * F * G / (4 * NoL * NoV);
+    //s = G;
+    return s;
+}
 
 float DisneyDiffuse(float NoV, float NoL, float LoH, float R2)
 {

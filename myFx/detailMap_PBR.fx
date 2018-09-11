@@ -212,7 +212,7 @@ float4 PS(PS_IN IN) : SV_Target
     {
         D += NoL;
         // D = DisneyDiffuse(NoV, NoL, LoH, R2);
-        S += Cook_Torrance(Ro, N, L, V, H, F0);
+        S += Cook_Torrance(Ro, N, L, V, H, Ab.xyz, metalness);
     }
 
     if (useIBL == 1)

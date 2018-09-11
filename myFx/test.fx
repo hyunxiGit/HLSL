@@ -50,6 +50,7 @@ float4 PS(PS_IN IN) : SV_Target
     float3 N = mul(NMap.xyz, objToTangentSpace);
     N = mul(normalize(float3(IN.N.xy + N.xy, IN.N.z)), world);
     COL.xyz = dot(N, normalize(myLight));
+    COL = myColor;
     return COL;
 }
 
