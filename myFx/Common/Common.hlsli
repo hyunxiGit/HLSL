@@ -166,9 +166,9 @@ float3 applyN(float3 NM, float3 B, float3 T, inout float3 N, float bumpScale)
     return resultN;
 }
 
-float3 processNMap(Texture2D map, SamplerState samp, float2 uv)
+float3 processNMap(float3 rawNormal)
 {
-    float3 nMap = texture_to_vector(map.Sample(samp, uv).xyz);
+    float3 nMap = texture_to_vector(rawNormal);
     nMap.g = -nMap.g;
     return nMap;
 }

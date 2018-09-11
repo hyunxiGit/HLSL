@@ -3,7 +3,7 @@
 #include "Common.hlsli"
 #include "pbrBase.hlsli"
 
-//detail map amount
+//detail map amount, da_ detail map + base map
 #define da 4
 #define da_ 5
 struct weightData

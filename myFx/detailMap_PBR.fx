@@ -3,31 +3,22 @@
 SCRIPT_FX("Technique=Main_11;")
 
 //office environment
-#define BASE_A "D:/work/HLSL/texture/blendBase.png"
-#define BASE_N "D:/work/HLSL/texture/base_160.png"
-#define BASE_R "D:/work/HLSL/texture/defaultR.png"
-#define BASE_M "D:/work/HLSL/texture/pbrT_m.png"
 #define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
 
-#define D1_A "D:/work/HLSL/texture/d2_ab.png"
-#define D1_N "D:/work/HLSL/texture/d2_no.png"
-#define D1_R "D:/work/HLSL/texture/d2_r.png"
-#define D1_M "D:/work/HLSL/texture/defaultM.png"
+#define BASE_A "D:/work/HLSL/texture/blendBase.png"
+#define BASE_MRN "D:/work/HLSL/texture/base_mrn.tga"
 
-#define D2_A "D:/work/HLSL/texture/d1_ab.png"
-#define D2_N "D:/work/HLSL/texture/d1_no.png"
-#define D2_R "D:/work/HLSL/texture/d1_ro.png"
-#define D2_M "D:/work/HLSL/texture/defaultM.png"
+#define D1_A "D:/work/HLSL/texture/d1_ab.png"
+#define D1_MRN "D:/work/HLSL/texture/d1_mrn.tga"
+
+#define D2_A "D:/work/HLSL/texture/d2_ab.png"
+#define D2_MRN "D:/work/HLSL/texture/d2_mrn.tga"
 
 #define D3_A "D:/work/HLSL/texture/d3_ab.png"
-#define D3_N "D:/work/HLSL/texture/d3_no.png"
-#define D3_R "D:/work/HLSL/texture/d3_ro.png"
-#define D3_M "D:/work/HLSL/texture/defaultM.png"
+#define D3_MRN "D:/work/HLSL/texture/d3_mrn.tga"
 
 #define D4_A "D:/work/HLSL/texture/d4_ab.png"
-#define D4_N "D:/work/HLSL/texture/d4_no.png"
-#define D4_R "D:/work/HLSL/texture/d4_ro.png"
-#define D4_M "D:/work/HLSL/texture/defaultM.png"
+#define D4_MRN "D:/work/HLSL/texture/d4_mrn.tga"
 
 //home environment
 //#define BASE_A "C:\\MyGit\\HLSL\\texture\\pbrT\\pbrT_a.png"
@@ -50,33 +41,23 @@ DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 
 DECLARE_CUBE(EnvMap, EnvMapSampler, CUBE_M, "cube")
 TEXTURE2D(Amap, a_Sampler, BASE_A, "abedo")
-TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
-TEXTURE2D(Rmap, r_Sampler, BASE_R, "roughness")
-TEXTURE2D(Mmap, m_Sampler, BASE_M, "metalness")
+TEXTURE2D(MRNmap, mrn_Sampler, BASE_MRN, "MRN")
 
 DECLARE_COLOR(d1HSV,float4(0.23f, 0.46f, 0.12f, 1.0f), "d1")
 TEXTURE2D(D1Amap, D1A_Sampler, D1_A, "d1 abedo")
-TEXTURE2D(D1Nmap, D1N_Sampler, D1_N, "d1 normal")
-TEXTURE2D(D1Rmap, D1R_Sampler, D1_R, "d1 roughness")
-//TEXTURE2D(D1Mmap, D1M_Sampler, D1_M, "d1 metalness")
+TEXTURE2D(D1MRNmap, D1MRN_Sampler, D1_MRN, "d1 MRN")
 
 DECLARE_COLOR(d2HSV, float4(0.299f, 0.206f, 0.12f, 1.0f), "d2")
 TEXTURE2D(D2Amap, D2A_Sampler, D2_A, "d2 abedo")
-TEXTURE2D(D2Nmap, D2N_Sampler, D2_N, "d2 normal")
-TEXTURE2D(D2Rmap, D2R_Sampler, D2_R, "d2 roughness")
-//TEXTURE2D(D2Mmap, D2M_Sampler, D2_M, "d2 metalness")
+TEXTURE2D(D2MRNmap, D2MRN_Sampler, D2_MRN, "d2 MRN")
 
 DECLARE_COLOR(d3HSV, float4(0, 0, 1.0f, 1.0f), "d3")
 TEXTURE2D(D3Amap, D3A_Sampler, D3_A, "d3 abedo")
-TEXTURE2D(D3Nmap, D3N_Sampler, D3_N, "d3 normal")
-TEXTURE2D(D3Rmap, D3R_Sampler, D3_R, "d3 roughness")
-//TEXTURE2D(D3Mmap, D3M_Sampler, D3_M, "d3 metalness")
+TEXTURE2D(D3MRNmap, D3MRN_Sampler, D3_MRN, "d3 MRN")
 
 DECLARE_COLOR(d4HSV, float4(0.86f, 1.0f, 0.0f, 1.0f), "d4")
 TEXTURE2D(D4Amap, D4A_Sampler, D4_A, "d4 abedo")
-TEXTURE2D(D4Nmap, D4N_Sampler, D4_N, "d4 normal")
-TEXTURE2D(D4Rmap, D4R_Sampler, D4_R, "d4 roughness")
-//TEXTURE2D(D4Mmap, D4M_Sampler, D4_M, "d4 metalness")
+TEXTURE2D(D4MRNmap, D4MRN_Sampler, D4_MRN, "d4 MRN")
 
 struct VS_IN
 {
@@ -117,6 +98,20 @@ void useMapBlend(inout float4 Ab, inout float Ro, inout float Me, inout float3 n
     no = lerp(float3(0, 0, 1), no, useMap);
 }
 
+struct maps
+{
+    float3 normal;
+    float1 metalness;
+    float1 roughness;
+};
+
+void decodeMap(float4 mrnMap, inout textureSet maps)
+{
+    maps.no = processNMap(normalize(float3(mrnMap.b, mrnMap.a, 1)));
+    maps.ro = mrnMap.g;
+    maps.me = mrnMap.r;
+}
+
 float4 PS(PS_IN IN) : SV_Target
 {
     float3 N_W = mul(IN.N_O, world);
@@ -126,39 +121,30 @@ float4 PS(PS_IN IN) : SV_Target
     //prepare map
     textureSet base;
     base.ab = Amap.Sample(a_Sampler, IN.uv);
-    base.no = processNMap(Nmap, n_Sampler, IN.uv);
-    base.ro = Rmap.Sample(r_Sampler, IN.uv);
-    base.me = Mmap.Sample(m_Sampler, IN.uv);
+    float4 mrn = MRNmap.Sample(mrn_Sampler, IN.uv);
+    decodeMap(mrn, base);
 
     int UVscale = 5;
 
     textureSet tsd1;
     tsd1.ab = D1Amap.Sample(D1A_Sampler, IN.uv * UVscale);
-    tsd1.no = processNMap(D1Nmap, D1N_Sampler, IN.uv * UVscale);
-    tsd1.ro = D1Rmap.Sample(D1R_Sampler, IN.uv * UVscale);
-    //tsd1.me = D1Mmap.Sample(D1M_Sampler, IN.uv * UVscale);
-    tsd1.me = base.me;
+    mrn = D1MRNmap.Sample(D1MRN_Sampler, IN.uv);
+    decodeMap(mrn, tsd1);
 
     textureSet tsd2;
     tsd2.ab = D2Amap.Sample(D2A_Sampler, IN.uv * UVscale);
-    tsd2.no = processNMap(D2Nmap, D2N_Sampler, IN.uv * UVscale);
-    tsd2.ro = D2Rmap.Sample(D2R_Sampler, IN.uv * UVscale);
-    //tsd2.me = D2Mmap.Sample(D2M_Sampler, IN.uv * UVscale);
-    tsd2.me = tsd1.me;
+    mrn = D2MRNmap.Sample(D2MRN_Sampler, IN.uv);
+    decodeMap(mrn, tsd2);
 
     textureSet tsd3;
     tsd3.ab = D3Amap.Sample(D3A_Sampler, IN.uv * UVscale);
-    tsd3.no = processNMap  (D3Nmap, D3N_Sampler, IN.uv * UVscale);
-    tsd3.ro = D3Rmap.Sample(D3R_Sampler, IN.uv * UVscale);
-    //tsd3.me = D3Mmap.Sample(D3M_Sampler, IN.uv * UVscale);
-    tsd3.me = tsd1.me;
+    mrn = D3MRNmap.Sample(D3MRN_Sampler, IN.uv);
+    decodeMap(mrn, tsd3);
 
     textureSet tsd4;
     tsd4.ab = D4Amap.Sample(D4A_Sampler, IN.uv * UVscale);
-    tsd4.no = processNMap(D4Nmap, D4N_Sampler, IN.uv * UVscale);
-    tsd4.ro = D4Rmap.Sample(D4R_Sampler, IN.uv * UVscale);
-    //tsd4.me = D4Mmap.Sample(D4M_Sampler, IN.uv * UVscale);
-    tsd4.me = tsd1.me;
+    mrn = D4MRNmap.Sample(D4MRN_Sampler, IN.uv);
+    decodeMap(mrn, tsd4);
 
     //prepare detail map
     float weight[da] = { 0, 0, 0 ,0};
@@ -171,7 +157,6 @@ float4 PS(PS_IN IN) : SV_Target
     wd.blendColor[4] = d4HSV;
     wd.blendPower = n;
     getWeight(wd);
-
 
     textureSet ts[da_];
     ts[0] = base;
@@ -223,8 +208,6 @@ float4 PS(PS_IN IN) : SV_Target
 
     COL = D * DC + S * SC;
     COL.w = 1;
-
-   // COL = dot(N, L);
     return COL;
 }
 
