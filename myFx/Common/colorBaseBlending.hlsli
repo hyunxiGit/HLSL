@@ -21,8 +21,9 @@ struct textureSet
     float  me;
 };
 
-void getWeight(inout weightData wd)
+void getWeight1(inout weightData wd)
 {
+    //calculate distance of the assigned color and base color
     float4 col;
     float3 bHSV = RGBtoHSV(wd.blendColor[0].rgb);
 

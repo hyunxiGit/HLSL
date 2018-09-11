@@ -5,8 +5,11 @@ SCRIPT_FX("Technique=Main_11;")
 //office environment
 #define CUBE_M "D:/work/HLSL/texture/default_reflection_cubic.dds"
 
-#define BASE_A "D:/work/HLSL/texture/blendBase.png"
-#define BASE_MRN "D:/work/HLSL/texture/base_mrn.tga"
+#define BLENDMASK "C:/Users/hyunx/Desktop/detailMap/max/texture/reverbank_mask.png"
+
+#define BASE_A "C:/Users/hyunx/Desktop/detailMap/max/texture/reverbank_d.tga"
+#define BASE_MRN "C:/Users/hyunx/Desktop/detailMap/max/texture/reverbank_mrn.tga"
+#define BASE_N "C:/Users/hyunx/Desktop/detailMap/max/texture/riverbank_n.tga"
 
 #define D1_A "D:/work/HLSL/texture/d1_ab.png"
 #define D1_MRN "D:/work/HLSL/texture/d1_mrn.tga"
@@ -42,6 +45,9 @@ DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 DECLARE_CUBE(EnvMap, EnvMapSampler, CUBE_M, "cube")
 TEXTURE2D(Amap, a_Sampler, BASE_A, "abedo")
 TEXTURE2D(MRNmap, mrn_Sampler, BASE_MRN, "MRN")
+TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
+
+TEXTURE2D(BlendMap, Blend_Sampler, BLENDMASK, "blend map")
 
 DECLARE_COLOR(d1HSV,float4(0.23f, 0.46f, 0.12f, 1.0f), "d1")
 TEXTURE2D(D1Amap, D1A_Sampler, D1_A, "d1 abedo")
@@ -58,6 +64,13 @@ TEXTURE2D(D3MRNmap, D3MRN_Sampler, D3_MRN, "d3 MRN")
 DECLARE_COLOR(d4HSV, float4(0.86f, 1.0f, 0.0f, 1.0f), "d4")
 TEXTURE2D(D4Amap, D4A_Sampler, D4_A, "d4 abedo")
 TEXTURE2D(D4MRNmap, D4MRN_Sampler, D4_MRN, "d4 MRN")
+
+int b_mode <
+	string UIName = "blend";
+	string UIWidget = "slider";
+	float UIMin = 0;
+	float UIMax = 1;	
+> = 1;
 
 struct VS_IN
 {
@@ -123,6 +136,8 @@ float4 PS(PS_IN IN) : SV_Target
     base.ab = Amap.Sample(a_Sampler, IN.uv);
     float4 mrn = MRNmap.Sample(mrn_Sampler, IN.uv);
     decodeMap(mrn, base);
+    float3 nMap = processNMap(Nmap.Sample(n_Sampler, IN.uv).xyz);
+    base.no = nMap;
 
     int UVscale = 5;
 
@@ -150,13 +165,26 @@ float4 PS(PS_IN IN) : SV_Target
     float weight[da] = { 0, 0, 0 ,0};
     weightData wd;
     wd.weight = weight;
-    wd.blendColor[0] = base.ab;
-    wd.blendColor[1] = d1HSV;
-    wd.blendColor[2] = d2HSV;
-    wd.blendColor[3] = d3HSV;
-    wd.blendColor[4] = d4HSV;
     wd.blendPower = n;
-    getWeight(wd);
+    if (b_mode == 0)
+    {
+        wd.blendColor[0] = base.ab;
+        wd.blendColor[1] = d1HSV;
+        wd.blendColor[2] = d2HSV;
+        wd.blendColor[3] = d3HSV;
+        wd.blendColor[4] = d4HSV;
+    }
+    if (b_mode == 1)
+    {
+        wd.blendColor[0] = BlendMap.Sample(Blend_Sampler, IN.uv);
+        wd.blendColor[1] = float4(1,0,0,1);
+        wd.blendColor[2] = float4(0, 1 , 0,1);
+        wd.blendColor[3] = float4(0, 0, 1,1);
+        wd.blendColor[4] = float4(1, 1, 0,1);
+    }
+    getWeight1(wd);
+
+
 
     textureSet ts[da_];
     ts[0] = base;
@@ -207,6 +235,15 @@ float4 PS(PS_IN IN) : SV_Target
     }
 
     COL = D * DC + S * SC;
+    mrn = MRNmap.Sample(mrn_Sampler, IN.uv);
+    float3 no = processNMap(float3(mrn.b, mrn.a, 1));
+    N = applyN(no, B_W, T_W, N_W, bumpScale);
+
+    
+    //N = applyN(base.no, B_W, T_W, N_W, bumpScale);
+
+    //COL = dot(N, L);
+    //COL.xyz = nMap.rgb;
     COL.w = 1;
     return COL;
 }

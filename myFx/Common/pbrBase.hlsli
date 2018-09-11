@@ -154,6 +154,7 @@ float3 Cook_Torrance2(float r, float3 n, float3 l, float3 v, float3 h, float3 su
     return s;
 }
 
+
 float DisneyDiffuse(float NoV, float NoL, float LoH, float R2)
 {
     float fd90 = 0.5 + 2 * LoH * LoH * R2;

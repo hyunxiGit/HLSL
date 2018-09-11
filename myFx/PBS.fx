@@ -38,10 +38,10 @@ TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
 TEXTURE2D(Rmap, r_Sampler, BASE_R, "roughness")
 TEXTURE2D(Mmap, m_Sampler, BASE_M, "metalness")
 
-TEXTURE2D(D1Amap, D1A_Sampler, D1_A, "d1 abedo")
-TEXTURE2D(D1Nmap, D1N_Sampler, D1_N, "d1 normal")
-TEXTURE2D(D1Rmap, D1R_Sampler, D1_R, "d1 roughness")
-TEXTURE2D(D1Mmap, D1M_Sampler, D1_M, "d1 metalness")
+//TEXTURE2D(D1Amap, D1A_Sampler, D1_A, "d1 abedo")
+//TEXTURE2D(D1Nmap, D1N_Sampler, D1_N, "d1 normal")
+//TEXTURE2D(D1Rmap, D1R_Sampler, D1_R, "d1 roughness")
+//TEXTURE2D(D1Mmap, D1M_Sampler, D1_M, "d1 metalness")
 
 struct VS_IN
 {
@@ -94,13 +94,13 @@ float4 PS(PS_IN IN) : SV_Target
     float Me = Amap.Sample(m_Sampler, IN.uv);
 
 
-    float3 nMap = processNMap(Nmap, n_Sampler, IN.uv);
-    float3 d1nMap = processNMap(D1Nmap, D1N_Sampler, IN.uv);
+    float3 nMap = processNMap(Nmap.Sample(n_Sampler, IN.uv).xyz);
+    //float3 d1nMap = processNMap(D1Nmap.Sample(D1N_Sampler, IN.uv).xyz);
 
-    float3 BN = blendNormal(nMap, d1nMap);    
+    //float3 BN = blendNormal(nMap, d1nMap);    
 
-    useMapBlend(Ab, Ro, Me,BN, useMap);
-    float3 N = applyN(BN, B_W, T_W, N_W, bumpScale);
+    useMapBlend(Ab, Ro, Me, nMap, useMap);
+    float3 N = applyN(nMap, B_W, T_W, N_W, bumpScale);
 
     int useIBL = 1;
     float4 COL = { 0, 0, 1, 1 };
@@ -143,7 +143,7 @@ float4 PS(PS_IN IN) : SV_Target
     float3 F = Cook_Torrance2(Ro, N, L, V, H, abedo.xyz, metalness);
    // COL = dot(N, L);
 
-    COL.xyz = F;
+    //COL.xyz = F;
     return COL;
 }
 
