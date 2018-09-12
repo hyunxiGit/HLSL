@@ -5,7 +5,7 @@ DECLARE_COLOR(abedo, float4(1,0.85,0.61,1), "abedo color")
 DECLARE_FLOAT(roughness, 0.05, 0.99, 0.5, "roughness")
 DECLARE_FLOAT(metalness, 0, 1, 1, "metalness")
 DECLARE_FLOAT(F0, 0, 1, 0.2, "fresnel")
-DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
+DECLARE_LIGHT(myLight, "PointLight0", myLightColor, "Light Position", 0)
 DECLARE_FLOAT(EnvI, 0, 1, 0.2f, "cube intensity")
 DECLARE_FLOAT(bumpScale, 0, 1, 0.25, "normal intensity")
 
@@ -121,23 +121,22 @@ float4 PS(PS_IN IN) : SV_Target
     float LoH = saturate(dot(L, H));
     float R2 = Ro * Ro;
 
-    if (NoL > 0)
-    {
-        D += NoL;
-        // D = DisneyDiffuse(NoV, NoL, LoH, R2);
-        S += Cook_Torrance(Ro, N, L, V, H, abedo.xyz, metalness);
-    }
+    BRDFOUT Fac = Cook_Torrance(Ro, N, L, V, H, abedo.xyz, metalness);
+    //direct light
+    float3 radiance = pointLight(myLightColor, N, myLight, IN.P_W.xyz);
+    float3 Lo = (Fac.Kd * Ab.xyz / PI + Fac.specular) * radiance * NoL;
 
 
-    if (useIBL == 1)
-    {
-        S.xyz += EnvI * specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
-        D.xyz += EnvI * diffuseIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
-    }
+
+    //if (useIBL == 1)
+    //{
+    //    S.xyz += EnvI * specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
+    //    D.xyz += EnvI * diffuseIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
+    //}
     
 
-    COL = D * DC + S * SC;
-    
+    //COL = D * DC + S * SC;
+    COL.xyz = Lo;
     COL.w = 1;
     //float3 F = specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
    // COL = dot(N, L);

@@ -106,7 +106,7 @@ float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specula
 
 float3 fresnelSchlick( float NoV , float3 surfaceColor, float metalic)
 {
-    //fresnelSchlick
+    //fresnel-Schlick
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), surfaceColor, metalic);
     float NoV5 = pow(1 - NoV, 5);
     float3 F = F0 + (1 - F0) * NoV5;
@@ -136,12 +136,20 @@ float GS(float NoV, float NoL, float k)
     return GNoV * GNoL;
 }
 
-float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h , float3 surfaceColor,float metalic)
+struct BRDFOUT
 {
+    float3 specular;
+    float3 Ks;
+    float3 Kd;
+};
+
+BRDFOUT Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h, float3 surfaceColor, float metalic)
+{
+    BRDFOUT OUT;
     float r2 = r * r;
-    float NoH = saturate(dot(n, h));
-    float NoV = saturate(dot(n, v));
-    float NoL = saturate(dot(n, l));
+    float NoH = max(dot(n, h), 0);
+    float NoV = max(dot(n, v), 0);
+    float NoL = max(dot(n, l), 0);
 
     float k_direct = pow(r2 + 1, 2) / 8;
     float k_ibl = pow(r2, 2) / 2;
@@ -150,8 +158,14 @@ float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h , float3 sur
     float3 F = fresnelSchlick(NoV, surfaceColor, metalic);
     float G = GS(NoV, NoL, k_direct);
 
-    float s = D * F * G / (4 * NoL * NoV);
-    return s;
+    OUT.specular = D * F * G / max(4 * NoL * NoV, 0.001f);
+
+    //specular & diffuse contributer
+    OUT.Ks = F;
+    OUT.Kd = float3(1, 1, 1) - OUT.Ks;
+    OUT.Kd *= 1 - metalic;
+    
+    return OUT;
 }
 
 float DisneyDiffuse(float NoV, float NoL, float LoH, float R2)
@@ -162,6 +176,23 @@ float DisneyDiffuse(float NoV, float NoL, float LoH, float R2)
     float viewScatter = (1 + (fd90 - 1) * pow(1 - NoV, 5));
 
     return lightScatter * viewScatter;
+}
+
+// lighting models
+
+float pLightAtt(float3 P, float3 L)
+{
+    //invers square att
+    float distance = length(L - P);
+    return 1.0 / (distance * distance);
+}
+float3 pointLight(float3 lColor, float3 N , float3 L , float3 P )
+{
+    float3 Wi = normalize(L - P);
+    float cosTheta = max(dot(N, Wi), 0);
+    float attenuation = pLightAtt(P,L);
+    float3 radiance = lColor * attenuation * cosTheta;
+    return radiance;
 }
 
 #endif
