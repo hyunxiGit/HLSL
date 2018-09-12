@@ -106,10 +106,34 @@ float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specula
 
 float3 fresnelSchlick( float NoV , float3 surfaceColor, float metalic)
 {
-    float3 F0 = lerp(float3(0.004, 0.004, 0.004), surfaceColor, metalic);
+    //fresnelSchlick
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), surfaceColor, metalic);
     float NoV5 = pow(1 - NoV, 5);
     float3 F = F0 + (1 - F0) * NoV5;
     return F;
+}
+
+float NDF(float r2, float NoH)
+{
+    //Trowbridge-Reitz GGX
+    float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
+    return D;
+}
+
+float GSX(float NoV, float k)
+{
+    //Geometry Schlick-GGX
+    return NoV / (NoV * (1 - k) + k);
+}
+
+float GS(float NoV, float NoL, float k)
+{
+    //Geometry Smith
+    //NoV = max(NoV, 0);
+    //NoL = max(NoL, 0);
+    float GNoV = GSX(NoV, k);
+    float GNoL = GSX(NoL, k);
+    return GNoV * GNoL;
 }
 
 float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h , float3 surfaceColor,float metalic)
@@ -119,41 +143,16 @@ float Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h , float3 sur
     float NoV = saturate(dot(n, v));
     float NoL = saturate(dot(n, l));
 
-    //NDF
-    //float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
-    float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
-	//G
-    float G = G_Smith(r, NoV, NoL);
+    float k_direct = pow(r2 + 1, 2) / 8;
+    float k_ibl = pow(r2, 2) / 2;
 
-	//Fresnel
+    float D = NDF(r2, NoH);
     float3 F = fresnelSchlick(NoV, surfaceColor, metalic);
-    
+    float G = GS(NoV, NoL, k_direct);
+
     float s = D * F * G / (4 * NoL * NoV);
-    //s = G;
     return s;
 }
-
-float3 Cook_Torrance2(float r, float3 n, float3 l, float3 v, float3 h, float3 surfaceColor, float metalic)
-{
-    float r2 = r * r;
-    float NoH = saturate(dot(n, h));
-    float NoV = saturate(dot(n, v));
-    float NoL = saturate(dot(n, l));
-
-    //NDF
-    //float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
-    float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
-	//G
-    float G = G_Smith(r, NoV, NoL);
-
-	//Fresnel
-    float3 F = fresnelSchlick(NoV, surfaceColor, metalic);
-    
-    float3 s = D * F * G / (4 * NoL * NoV);
-    //s = G;
-    return s;
-}
-
 
 float DisneyDiffuse(float NoV, float NoL, float LoH, float R2)
 {

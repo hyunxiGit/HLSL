@@ -49,7 +49,12 @@ string UIName = (uiName);\
 string Space = "World";\
 int refID = (id);\
 int UIOrder = (uiOrder);\
-> = { -0.5f, 2.0f, 1.25f };
+> = { -0.5f, 2.0f, 1.25f };\
+float3 Lamp0Color : LIGHTCOLOR\
+<\
+int LightRef = (id);\
+string UIWidget = "None";\
+> = float3(1.0f, 1.0f, 1.0f);
 #define DECLARE_LIGHT(lightName , objectName, uiName, id ) DECLARE_LIGHT_UI(lightName , objectName, uiName, id, 0)
 
 #define TEXTURE2D_UI(TexName, SampName, filename, uiName , uIOrder)\

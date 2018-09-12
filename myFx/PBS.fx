@@ -136,11 +136,10 @@ float4 PS(PS_IN IN) : SV_Target
     }
     
 
-
     COL = D * DC + S * SC;
     
     COL.w = 1;
-    float3 F = Cook_Torrance2(Ro, N, L, V, H, abedo.xyz, metalness);
+    //float3 F = specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
    // COL = dot(N, L);
 
     //COL.xyz = F;
