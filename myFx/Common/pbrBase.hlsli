@@ -143,8 +143,9 @@ struct BRDFOUT
     float3 Kd;
 };
 
-BRDFOUT Cook_Torrance(float r, float3 n, float3 l, float3 v, float3 h, float3 surfaceColor, float metalic)
+BRDFOUT BRDF(float r, float3 n, float3 l, float3 v, float3 h, float3 surfaceColor, float metalic)
 {
+    //Cook_Torrance
     BRDFOUT OUT;
     float r2 = r * r;
     float NoH = max(dot(n, h), 0);
@@ -195,4 +196,10 @@ float3 pointLight(float3 lColor, float3 N , float3 L , float3 P )
     return radiance;
 }
 
+void gammarCorrect( inout float3 input)
+{
+    float R = 1 / 2.2;
+    input = input / (input + float3(1, 1, 1));
+    input = pow(input, float3(R,R,R));
+}
 #endif

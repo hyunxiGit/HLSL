@@ -93,6 +93,8 @@ float4 PS(PS_IN IN) : SV_Target
     float Ro = Rmap.Sample(r_Sampler, IN.uv);
     float Me = Amap.Sample(m_Sampler, IN.uv);
 
+    //sRGB to RGB
+    Ab.xyz = pow(Ab.xyz, 2.2);
 
     float3 nMap = processNMap(Nmap.Sample(n_Sampler, IN.uv).xyz);
     //float3 d1nMap = processNMap(D1Nmap.Sample(D1N_Sampler, IN.uv).xyz);
@@ -103,7 +105,7 @@ float4 PS(PS_IN IN) : SV_Target
     float3 N = applyN(nMap, B_W, T_W, N_W, bumpScale);
 
     int useIBL = 1;
-    float4 COL = { 0, 0, 1, 1 };
+    float3 color = { 0, 0, 1 };
     float3 L = normalize(myLight - IN.P_W.xyz);
     float3 V = normalize((viewI[3] - IN.P_W).xyz);
     float3 H = normalize(V + L);
@@ -121,10 +123,16 @@ float4 PS(PS_IN IN) : SV_Target
     float LoH = saturate(dot(L, H));
     float R2 = Ro * Ro;
 
-    BRDFOUT Fac = Cook_Torrance(Ro, N, L, V, H, abedo.xyz, metalness);
+    BRDFOUT Fac = BRDF(Ro, N, L, V, H, Ab.xyz, Me);
     //direct light
     float3 radiance = pointLight(myLightColor, N, myLight, IN.P_W.xyz);
     float3 Lo = (Fac.Kd * Ab.xyz / PI + Fac.specular) * radiance * NoL;
+
+    //ambient light
+    float3 a_color = float3(0.001, 0.001, 0.001);
+    float4 AO = float4(1, 1, 1, 1);
+    float3 ambient = a_color * Ab.xyz * AO.xyz;
+    color = Lo + ambient;
 
 
 
@@ -133,16 +141,14 @@ float4 PS(PS_IN IN) : SV_Target
     //    S.xyz += EnvI * specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
     //    D.xyz += EnvI * diffuseIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
     //}
+    //COL = D * DC + S * SC;
     
 
-    //COL = D * DC + S * SC;
-    COL.xyz = Lo;
-    COL.w = 1;
-    //float3 F = specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
-   // COL = dot(N, L);
 
-    //COL.xyz = F;
-    return COL;
+
+    //tone map from HDR to LDR
+    gammarCorrect(color);
+    return float4(color,1);
 }
 
 fxgroup dx11
