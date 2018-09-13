@@ -136,8 +136,7 @@ float4 PS(PS_IN IN) : SV_Target
     float3 ibl_diffuse = ibl_radiance * Ab.xyz;
     float3 ambient = Fac.Kd * ibl_diffuse * AO.xyz;
 //    color = Lo + ambient;
-
-
+       
 
     color = ambient;
 

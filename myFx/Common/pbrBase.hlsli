@@ -106,7 +106,7 @@ float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specula
 
 void tempCorrection(inout float3 LDR)
 {
-    LDR = pow(LDR, 5.2);
+    LDR = pow(LDR, 2.2);
 }
 
 float3 sampleIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float Roughness, float3 N, float3 V)

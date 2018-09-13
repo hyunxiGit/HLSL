@@ -72,10 +72,15 @@ void DetailBlend(inout textureSet ts[da_], float weight[da], float blendStrength
         ro_d += ts[i + 1].ro * weight[i];
         me_d += ts[i + 1].me * weight[i];
     }
+    ab_d.xyz = blend_overlay(base.ab.xyz, ab_d.xyz);
+    float j = (ab_d.x + ab_d.y + ab_d.z) / 3;
+    ab_d = lerp(float4(j, j, j, 1),ab_d,0.5);
     base.ab = base.ab * (1 - blendStrength) + ab_d * blendStrength;
 
     no_d = blendNormal(base.no, no_d);
     base.no = base.no * (1 - blendStrength) + no_d * blendStrength;
+
+    ro_d = blend_overlay(base.ro, ro_d);
     base.ro = base.ro * (1 - blendStrength) + ro_d * blendStrength;
     base.me = base.me * (1 - blendStrength) + me_d * blendStrength;
 

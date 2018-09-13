@@ -184,4 +184,35 @@ float3 blendNormal(float3 n1, float3 n2)
     return BN;
 }
 
+
+float3 blend_overlay(float3 a, float3 b)
+{
+    float3 r;
+    if (a.r + a.g + a.b < 1.5)
+    {
+        r = 2 * a * b;
+    }
+    else
+    {
+        r = 1 - 2 * (1 - a) * (1 - b);
+    }
+    saturate(r);
+    return r;
+}
+
+float blend_overlay(float a, float b)
+{
+    float r;
+    if (a < 0.5)
+    {
+        r = 2 * a * b;
+    }
+    else
+    {
+        r = 1 - 2 * (1 - a) * (1 - b);
+    }
+    saturate(r);
+    return r;
+}
+
 #endif

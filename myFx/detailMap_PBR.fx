@@ -45,7 +45,6 @@ DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 DECLARE_CUBE(EnvMap, EnvMapSampler, CUBE_M, "cube")
 TEXTURE2D(Amap, a_Sampler, BASE_A, "abedo")
 TEXTURE2D(MRNmap, mrn_Sampler, BASE_MRN, "MRN")
-TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
 
 TEXTURE2D(BlendMap, Blend_Sampler, BLENDMASK, "blend map")
 
@@ -136,8 +135,6 @@ float4 PS(PS_IN IN) : SV_Target
     base.ab = Amap.Sample(a_Sampler, IN.uv);
     float4 mrn = MRNmap.Sample(mrn_Sampler, IN.uv);
     decodeMap(mrn, base);
-    float3 nMap = processNMap(Nmap.Sample(n_Sampler, IN.uv).xyz);
-    base.no = nMap;
 
     int UVscale = 5;
 
@@ -162,7 +159,7 @@ float4 PS(PS_IN IN) : SV_Target
     decodeMap(mrn, tsd4);
 
     //prepare detail map
-    float weight[da] = { 0, 0, 0 ,0};
+    float weight[da] = { 0, 0, 0, 0 };
     weightData wd;
     wd.weight = weight;
     wd.blendPower = n;
@@ -177,10 +174,10 @@ float4 PS(PS_IN IN) : SV_Target
     if (b_mode == 1)
     {
         wd.blendColor[0] = BlendMap.Sample(Blend_Sampler, IN.uv);
-        wd.blendColor[1] = float4(1,0,0,1);
-        wd.blendColor[2] = float4(0, 1 , 0,1);
-        wd.blendColor[3] = float4(0, 0, 1,1);
-        wd.blendColor[4] = float4(1, 1, 0,1);
+        wd.blendColor[1] = float4(1, 0, 0, 1);
+        wd.blendColor[2] = float4(0, 1, 0, 1);
+        wd.blendColor[3] = float4(0, 0, 1, 1);
+        wd.blendColor[4] = float4(1, 1, 0, 1);
     }
     getWeight1(wd);
 
@@ -195,11 +192,13 @@ float4 PS(PS_IN IN) : SV_Target
 
     DetailBlend(ts, wd.weight, m);
 
+
     float4 Ab = ts[0].ab;
     float Ro = ts[0].ro;
     float Me = ts[0].me;
     float3 No = ts[0].no;
     float3 N = applyN(No, B_W, T_W, N_W, bumpScale);
+
 
     //prepare PBR
     int useIBL = 1;
@@ -221,29 +220,30 @@ float4 PS(PS_IN IN) : SV_Target
     float LoH = saturate(dot(L, H));
     float R2 = Ro * Ro;
 
-    if (NoL > 0)
+
+    BRDFOUT Fac = BRDF(Ro, N, L, V, H, Ab.xyz, Me);
+    //direct light
+    float3 radiance = pointLight(myLightColor, N, myLight, IN.P_W.xyz);
+    float3 Lo = (Fac.Kd * Ab.xyz / PI + Fac.specular) * radiance * NoL;
+
+    //ambient temp , not correct yet
+    float3 ambient;
+    if (EnvI>0)
     {
-        D += NoL;
-        // D = DisneyDiffuse(NoV, NoL, LoH, R2);
-        S += Cook_Torrance(Ro, N, L, V, H, Ab.xyz, metalness);
+        float3 ibl_radiance = sampleIBL(EnvMap, EnvMapSampler, Ro, N, V);
+        float4 AO = Amap.Sample(a_Sampler, IN.uv).aaaa;
+        float3 ibl_diffuse = ibl_radiance * Ab.xyz;
+        ambient = Fac.Kd * ibl_diffuse * AO.xyz;
     }
-
-    if (useIBL == 1)
+       
+    else
     {
-        S.xyz += EnvI * specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
-        D.xyz += EnvI * diffuseIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
+        float AO = Amap.Sample(a_Sampler, IN.uv).a;
+        ambient = Fac.Kd * float3(0.1,0.1,0.1) * AO;
     }
+        
+    COL.xyz = Lo + ambient * EnvI;
 
-    COL = D * DC + S * SC;
-    mrn = MRNmap.Sample(mrn_Sampler, IN.uv);
-    float3 no = processNMap(float3(mrn.b, mrn.a, 1));
-    N = applyN(no, B_W, T_W, N_W, bumpScale);
-
-    
-    //N = applyN(base.no, B_W, T_W, N_W, bumpScale);
-
-    //COL = dot(N, L);
-    //COL.xyz = nMap.rgb;
     COL.w = 1;
     return COL;
 }
