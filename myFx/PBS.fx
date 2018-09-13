@@ -4,7 +4,6 @@ SCRIPT_FX("Technique=Main_11;")
 DECLARE_COLOR(abedo, float4(1,0.85,0.61,1), "abedo color")
 DECLARE_FLOAT(roughness, 0.05, 0.99, 0.5, "roughness")
 DECLARE_FLOAT(metalness, 0, 1, 1, "metalness")
-DECLARE_FLOAT(F0, 0, 1, 0.2, "fresnel")
 DECLARE_LIGHT(myLight, "PointLight0", myLightColor, "Light Position", 0)
 DECLARE_FLOAT(EnvI, 0, 1, 0.2f, "cube intensity")
 DECLARE_FLOAT(bumpScale, 0, 1, 0.25, "normal intensity")
@@ -82,6 +81,7 @@ void useMapBlend(inout float4 Ab, inout float Ro, inout float Me, inout float3 n
     no = lerp(float3(0, 0, 1), no, useMap);
 }
 
+
 float4 PS(PS_IN IN) : SV_Target
 {
 
@@ -92,17 +92,19 @@ float4 PS(PS_IN IN) : SV_Target
     float4 Ab = Amap.Sample(a_Sampler, IN.uv);
     float Ro = Rmap.Sample(r_Sampler, IN.uv);
     float Me = Amap.Sample(m_Sampler, IN.uv);
-
+       
     //sRGB to RGB
     Ab.xyz = pow(Ab.xyz, 2.2);
 
     float3 nMap = processNMap(Nmap.Sample(n_Sampler, IN.uv).xyz);
     //float3 d1nMap = processNMap(D1Nmap.Sample(D1N_Sampler, IN.uv).xyz);
-
+       
     //float3 BN = blendNormal(nMap, d1nMap);    
+
 
     useMapBlend(Ab, Ro, Me, nMap, useMap);
     float3 N = applyN(nMap, B_W, T_W, N_W, bumpScale);
+
 
     int useIBL = 1;
     float3 color = { 0, 0, 1 };
@@ -129,12 +131,15 @@ float4 PS(PS_IN IN) : SV_Target
     float3 Lo = (Fac.Kd * Ab.xyz / PI + Fac.specular) * radiance * NoL;
 
     //ambient light
-    float3 a_color = float3(0.001, 0.001, 0.001);
+    float3 ibl_radiance = sampleIBL(EnvMap, EnvMapSampler, Ro, N, V);
     float4 AO = float4(1, 1, 1, 1);
-    float3 ambient = a_color * Ab.xyz * AO.xyz;
-    color = Lo + ambient;
+    float3 ibl_diffuse = ibl_radiance * Ab.xyz;
+    float3 ambient = Fac.Kd * ibl_diffuse * AO.xyz;
+//    color = Lo + ambient;
 
 
+
+    color = ambient;
 
     //if (useIBL == 1)
     //{

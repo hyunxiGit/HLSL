@@ -104,12 +104,33 @@ float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specula
     return max(IncidentLighting / NumSamples, 0);
 }
 
+void tempCorrection(inout float3 LDR)
+{
+    LDR = pow(LDR, 5.2);
+}
+
+float3 sampleIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float Roughness, float3 N, float3 V)
+{
+    float3 light = 0;
+    const uint NumSamples = 500;
+    for (uint i = 0; i < NumSamples; i++)
+    {
+        float2 Xi = Hammersley(i, NumSamples);
+        float3 H = ImportanceSampleGGX(Xi, Roughness, N);
+        float3 L = 2 * dot(V, H) * H - V;
+        float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;
+        tempCorrection(SampleColor);
+        light += SampleColor;
+    }
+    return max(light / NumSamples, 0);
+}
+
 float3 fresnelSchlick( float NoV , float3 surfaceColor, float metalic)
 {
     //fresnel-Schlick
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), surfaceColor, metalic);
     float NoV5 = pow(1 - NoV, 5);
-    float3 F = F0 + (1 - F0) * NoV5;
+    float3 F = F0 + (float3(1,1,1) - F0) * NoV5;
     return F;
 }
 
