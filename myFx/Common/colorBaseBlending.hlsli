@@ -77,8 +77,14 @@ void DetailBlend(inout textureSet ts[da_], float weight[da], float blendStrength
     ab_d = lerp(float4(j, j, j, 1),ab_d,0.5);
     base.ab = base.ab * (1 - blendStrength) + ab_d * blendStrength;
 
+    //base.ab = float4(1, 1, 1,1);
+
     no_d = blendNormal(base.no, no_d);
     base.no = base.no * (1 - blendStrength) + no_d * blendStrength;
+    //base.no = base.no;
+    //base.no = base.no;
+
+
 
     ro_d = blend_overlay(base.ro, ro_d);
     base.ro = base.ro * (1 - blendStrength) + ro_d * blendStrength;

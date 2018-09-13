@@ -45,6 +45,7 @@ DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 DECLARE_CUBE(EnvMap, EnvMapSampler, CUBE_M, "cube")
 TEXTURE2D(Amap, a_Sampler, BASE_A, "abedo")
 TEXTURE2D(MRNmap, mrn_Sampler, BASE_MRN, "MRN")
+TEXTURE2D(Nmap, n_Sampler, BASE_N, "no")
 
 TEXTURE2D(BlendMap, Blend_Sampler, BLENDMASK, "blend map")
 
@@ -134,29 +135,34 @@ float4 PS(PS_IN IN) : SV_Target
     textureSet base;
     base.ab = Amap.Sample(a_Sampler, IN.uv);
     float4 mrn = MRNmap.Sample(mrn_Sampler, IN.uv);
+    
     decodeMap(mrn, base);
+    base.no = processNMap(Nmap.Sample(n_Sampler, IN.uv).xyz);
 
-    int UVscale = 5;
+    int UVscale = 20;
+
 
     textureSet tsd1;
     tsd1.ab = D1Amap.Sample(D1A_Sampler, IN.uv * UVscale);
-    mrn = D1MRNmap.Sample(D1MRN_Sampler, IN.uv);
+    mrn = D1MRNmap.Sample(D1MRN_Sampler, IN.uv * UVscale);
     decodeMap(mrn, tsd1);
 
     textureSet tsd2;
     tsd2.ab = D2Amap.Sample(D2A_Sampler, IN.uv * UVscale);
-    mrn = D2MRNmap.Sample(D2MRN_Sampler, IN.uv);
+    mrn = D2MRNmap.Sample(D2MRN_Sampler, IN.uv * UVscale);
     decodeMap(mrn, tsd2);
 
     textureSet tsd3;
     tsd3.ab = D3Amap.Sample(D3A_Sampler, IN.uv * UVscale);
-    mrn = D3MRNmap.Sample(D3MRN_Sampler, IN.uv);
+    mrn = D3MRNmap.Sample(D3MRN_Sampler, IN.uv * UVscale);
     decodeMap(mrn, tsd3);
-
+    
     textureSet tsd4;
     tsd4.ab = D4Amap.Sample(D4A_Sampler, IN.uv * UVscale);
-    mrn = D4MRNmap.Sample(D4MRN_Sampler, IN.uv);
+    mrn = D4MRNmap.Sample(D4MRN_Sampler, IN.uv * UVscale);
     decodeMap(mrn, tsd4);
+
+
 
     //prepare detail map
     float weight[da] = { 0, 0, 0, 0 };
