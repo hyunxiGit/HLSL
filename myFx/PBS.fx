@@ -132,13 +132,14 @@ float4 PS(PS_IN IN) : SV_Target
 
     //ambient light
     float3 ibl_radiance = sampleIBL(EnvMap, EnvMapSampler, Ro, N, V);
+    //float3 ibl_radiance = irradianceSample(EnvMap, EnvMapSampler, N);
     float4 AO = float4(1, 1, 1, 1);
     float3 ibl_diffuse = ibl_radiance * Ab.xyz;
     float3 ambient = Fac.Kd * ibl_diffuse * AO.xyz;
 //    color = Lo + ambient;
        
 
-    color = ambient;
+    color = ibl_radiance;
 
     //if (useIBL == 1)
     //{

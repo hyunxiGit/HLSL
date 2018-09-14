@@ -51,6 +51,32 @@ float3 ImportanceSampleGGX(float2 Xi, float Roughness, float3 N)
     return TangentX * H.x + TangentY * H.y + N * H.z;
 }
 
+float3 irradianceSample(TextureCube EnvMap, SamplerState EnvMapSampler,float3 N)
+{
+    float3 irradiance = float3(0, 0, 0);
+    float3 up = float3(0, 1, 0);
+    float3 right = cross(up,N);
+    up = cross(right,N);
+
+    float sampleDelta = 0.025;
+    float nrSamples = 0;
+
+    for (float phi = 0.0; phi < 2 * PI; phi +=sampleDelta)
+    {
+        for (float theta = 0.0; phi < PI/2; theta += sampleDelta)
+        {
+            //sphere to cartesian
+            float3 tangentSample = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+            //tangent space to world
+            float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
+            irradiance += EnvMap.Sample(EnvMapSampler, sampleVec).rgb * cos(theta) * sin(theta);
+            nrSamples++;
+        }
+    }
+    irradiance = PI * irradiance * (1 / nrSamples);
+    return irradiance;
+}
+
 float3 specularIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 SpecularColor, float Roughness, float3 N, float3 V)
 {
     float3 SpecularLighting = 0;
