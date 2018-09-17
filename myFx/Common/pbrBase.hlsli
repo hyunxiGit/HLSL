@@ -151,12 +151,21 @@ float3 sampleIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float Roughness
     return max(light / NumSamples, 0);
 }
 
-float3 fresnelSchlick( float NoV , float3 surfaceColor, float metalic)
+float3 fresnelSchlick( float NoH , float3 surfaceColor, float metalic)
 {
     //fresnel-Schlick
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), surfaceColor, metalic);
-    float NoV5 = pow(1 - NoV, 5);
+    float NoV5 = pow(1 - NoH, 5);
     float3 F = F0 + (float3(1,1,1) - F0) * NoV5;
+    return F;
+}
+
+float3 fresnelSchlickRoughness(float cosTheta, float3 surfaceColor, float metalic, float roughness)
+{
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), surfaceColor, metalic);
+    float cosTheta5 = pow(1 - cosTheta, 5);
+    float rr = 1.0 - roughness ;
+    float3 F = F0 + (max(float3(rr, rr, rr), F0) - F0) * cosTheta5;
     return F;
 }
 
@@ -203,7 +212,7 @@ BRDFOUT BRDF(float r, float3 n, float3 l, float3 v, float3 h, float3 surfaceColo
     float k_ibl = pow(r2, 2) / 2;
 
     float D = NDF(r2, NoH);
-    float3 F = fresnelSchlick(NoV, surfaceColor, metalic);
+    float3 F = fresnelSchlick(NoH, surfaceColor, metalic);
     float G = GS(NoV, NoL, k_direct);
 
     OUT.specular = D * F * G / max(4 * NoL * NoV, 0.001f);
