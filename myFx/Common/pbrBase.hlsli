@@ -19,6 +19,45 @@ float G_Smith(float r, float NoV, float NoL)
     //return rcp(G_V * G_L);
 }
 
+float GSX(float NoV, float k)
+{
+    //Geometry Schlick-GGX
+    return NoV / (NoV * (1 - k) + k);
+}
+
+float GS(float NoV, float NoL, float k)
+{
+    //Geometry Smith
+    //NoV = max(NoV, 0);
+    //NoL = max(NoL, 0);
+    float GNoV = GSX(NoV, k);
+    float GNoL = GSX(NoL, k);
+    return GNoV * GNoL;
+}
+
+float NDF(float r2, float NoH)
+{
+    //Trowbridge-Reitz GGX
+    float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
+    return D;
+}
+
+float3 fresnelSchlick(float NoH, float3 surfaceColor, float metalic)
+{
+    //fresnel-Schlick
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), surfaceColor, metalic);
+    float NoV5 = pow(1 - NoH, 5);
+    float3 F = F0 + (float3(1, 1, 1) - F0) * NoV5;
+    return F;
+}
+
+
+float compute_lod(uint NumSamples, float NoH,float r2)
+{
+    float dist = NDF(r2,NoH); // Defined elsewhere as subroutine
+    return 0.5 * (log2(float(512 * 512) / NumSamples) - log2(dist));
+}
+
 float RadicalInverse_VdC(uint bits)
 {
     bits = (bits << 16u) | (bits >> 16u);
@@ -53,6 +92,7 @@ float3 ImportanceSampleGGX(float2 Xi, float Roughness, float3 N)
 
 float3 irradianceSample(TextureCube EnvMap, SamplerState EnvMapSampler,float3 N)
 {
+    //this is the function that can be used in CPU instead of GPU
     float3 irradiance = float3(0, 0, 0);
     float3 up = float3(0, 1, 0);
     float3 right = cross(up,N);
@@ -90,6 +130,7 @@ float3 specularIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specul
         float NoL = saturate(dot(N, L));
         float NoH = saturate(dot(N, H));
         float VoH = saturate(dot(V, H));
+
         if (NoL > 0)
         {
             float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;
@@ -135,30 +176,41 @@ void tempCorrection(inout float3 LDR)
     LDR = pow(LDR, 2.2);
 }
 
-float3 sampleIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float Roughness, float3 N, float3 V)
+float3 sampleIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 surfaceColor, float metalic , float Roughness, float3 N, float3 V)
 {
-    float3 light = 0;
-    const uint NumSamples = 500;
+    float3 SpecularLighting = 0;
+    const uint NumSamples = 50;
     for (uint i = 0; i < NumSamples; i++)
     {
         float2 Xi = Hammersley(i, NumSamples);
         float3 H = ImportanceSampleGGX(Xi, Roughness, N);
         float3 L = 2 * dot(V, H) * H - V;
-        float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;
-        tempCorrection(SampleColor);
-        light += SampleColor;
+        float NoV = saturate(dot(N, V));
+        float NoL = saturate(dot(N, L));
+        float NoH = saturate(dot(N, H));
+        float VoH = saturate(dot(V, H));
+
+        float r2 = Roughness * Roughness;
+        float k_direct = pow(r2 + 1, 2) / 8;
+
+        float mipLevel = compute_lod(NumSamples, NoH, r2);
+
+        if (NoL > 0)
+        {
+            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, mipLevel).rgb;
+            float G = GS(NoV, NoL, k_direct);
+            float3 F = fresnelSchlick(NoH, surfaceColor, metalic);
+			
+            //Incident_light = SampleColor * NoL;
+			//Microfacet specular = D*G*F / (4*NoL*NoV)
+			// pdf = D * NoH / (4 * VoH)
+            
+            SpecularLighting += SampleColor * F * G * VoH / (NoH * NoV);
+        }
     }
-    return max(light / NumSamples, 0);
+    return max(SpecularLighting / NumSamples, 0);
 }
 
-float3 fresnelSchlick( float NoH , float3 surfaceColor, float metalic)
-{
-    //fresnel-Schlick
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), surfaceColor, metalic);
-    float NoV5 = pow(1 - NoH, 5);
-    float3 F = F0 + (float3(1,1,1) - F0) * NoV5;
-    return F;
-}
 
 float3 fresnelSchlickRoughness(float cosTheta, float3 surfaceColor, float metalic, float roughness)
 {
@@ -169,28 +221,8 @@ float3 fresnelSchlickRoughness(float cosTheta, float3 surfaceColor, float metali
     return F;
 }
 
-float NDF(float r2, float NoH)
-{
-    //Trowbridge-Reitz GGX
-    float D = pow(r2, 2) / (PI * pow(pow(NoH, 2) * (pow(r2, 2) - 1) + 1, 2));
-    return D;
-}
 
-float GSX(float NoV, float k)
-{
-    //Geometry Schlick-GGX
-    return NoV / (NoV * (1 - k) + k);
-}
 
-float GS(float NoV, float NoL, float k)
-{
-    //Geometry Smith
-    //NoV = max(NoV, 0);
-    //NoL = max(NoL, 0);
-    float GNoV = GSX(NoV, k);
-    float GNoL = GSX(NoL, k);
-    return GNoV * GNoL;
-}
 
 struct BRDFOUT
 {

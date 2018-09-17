@@ -134,15 +134,14 @@ float4 PS(PS_IN IN) : SV_Target
     float3 Ks = fresnelSchlickRoughness(NoV, Ab.xyz, Me, Ro);
     float3 Kd = float3(1, 1, 1) - Ks;
     Kd *= 1 - Me;
-    float3 ibl_radiance = specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
+    float3 ibl_radiance = sampleIBL(EnvMap, EnvMapSampler, Ab.xyz,metalness, Ro, N, V);
     //float3 ibl_radiance = irradianceSample(EnvMap, EnvMapSampler, N);
     float4 AO = float4(1, 1, 1, 1);
     float3 ibl_diffuse = ibl_radiance * Ab.xyz;
-    float3 ambient = Kd * ibl_diffuse * AO.xyz;
+    float3 ambient = Kd * ibl_diffuse * AO.xyz/PI;
 //    color = Lo + ambient;
 
-
-    color = ambient;
+    color = Lo+ambient;
 
     //if (useIBL == 1)
     //{
