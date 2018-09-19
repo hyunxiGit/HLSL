@@ -1,9 +1,13 @@
 #include "Common/Common.hlsli"
 #define BASE_A "D:/work/HLSL/texture/blendBase.png"
 //d1
-#define D1_A "D:/work/HLSL/texture/earth_a.jpg"
+#define D1_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\concrete_a.png"
 //d2
-#define D2_A "D:/work/HLSL/texture/grass_a.jpg"
+#define D2_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\oiloP_4K_Albedo.jpg"
+//d3
+#define D3_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjuu52_8K_Albedo.jpg"
+//d4
+#define D4_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjEfn2_4K_Albedo.jpg"
 
 SCRIPT_FX("Technique=Main;")
 
@@ -23,11 +27,21 @@ bool detailColor <
 
 //detail 1
 DECLARE_COLOR_UI(d1HSV, float4(0.299f, 0.206f, 0.12f, 1.0f), "d1", 4)
-TEXTURE2D_UI(d1aMap, d1aMap_Sampler, D1_A, "d1 abedo", 6)
+TEXTURE2D_UI(d1aMap, d1aMap_Sampler, D1_A, "d1", 5)
 
 //detail 2
-DECLARE_COLOR_UI(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 7)
-TEXTURE2D_UI(d2aMap, d2aMap_Sampler, D2_A, "d2 abedo", 9)
+DECLARE_COLOR_UI(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 6)
+TEXTURE2D_UI(d2aMap, d2aMap_Sampler, D2_A, "d2", 7)
+
+
+//detail 3
+DECLARE_COLOR_UI(d3HSV, float4(0.86f, 1.0f, 0, 1.0f), "d3", 8)
+TEXTURE2D_UI(d3aMap, d3aMap_Sampler, D3_A, "d3", 9)
+
+
+//detail 4
+DECLARE_COLOR_UI(d4HSV, float4(0, 0, 1.1f, 1.0f), "d4", 10)
+TEXTURE2D_UI(d4aMap, d4aMap_Sampler, D4_A, "d4", 11)
 
 
 struct VS_IN
