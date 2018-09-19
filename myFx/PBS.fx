@@ -130,28 +130,26 @@ float4 PS(PS_IN IN) : SV_Target
     float3 radiance = pointLight(myLightColor, N, myLight, IN.P_W.xyz);
     float3 Lo = (Fac.Kd * Ab.xyz / PI + Fac.specular) * radiance * NoL;
 
+
     //ambient light
+    float4 AO = float4(1, 1, 1, 1);
+
     float3 Ks = fresnelSchlickRoughness(NoV, Ab.xyz, Me, Ro);
     float3 Kd = float3(1, 1, 1) - Ks;
     Kd *= 1 - Me;
-    float3 r_ibl_s = sampleIBL(EnvMap, EnvMapSampler, Ab.xyz, metalness, Ro, N, V);
+    
     float3 r_ibl_d = diffuseIBL(EnvMap, EnvMapSampler, N);
-    float4 AO = float4(1, 1, 1, 1);
-    float3 ibl_diffuse = r_ibl_d * Ab.xyz;
-    float3 ambient = Kd * ibl_diffuse * AO.xyz/PI;
-    color = Lo + ambient;
+    float3 ibl_diffuse = Kd *r_ibl_d * Ab.xyz;
     
-    //if (useIBL == 1)
-    //{
-    //    S.xyz += EnvI * specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
-    //    D.xyz += EnvI * diffuseIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
-    //}
-    //COL = D * DC + S * SC;
-    
+    IBL_BRDFOUT ibl_Fac = sampleIBL_BRDF(EnvMap, EnvMapSampler, Ab.xyz, metalness, Ro, N, V);
+    float3 ibl_spec = ibl_Fac.preC * (Ks * ibl_Fac.A + ibl_Fac.B);
+
+    float3 ambient = ( ibl_diffuse  + ibl_spec) * AO.xyz;
+    color = Lo+ambient;
 
 
     //tone map from HDR to LDR
-    gammarCorrect(color);
+    //gammarCorrect(color);
     return float4(color,1);
 }
 

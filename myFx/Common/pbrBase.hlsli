@@ -117,36 +117,36 @@ float3 irradianceSample(TextureCube EnvMap, SamplerState EnvMapSampler,float3 N)
     return irradiance;
 }
 
-float3 specularIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 SpecularColor, float Roughness, float3 N, float3 V)
-{
-    float3 SpecularLighting = 0;
-    const uint NumSamples = 50;
-    for (uint i = 0; i < NumSamples; i++)
-    {
-        float2 Xi = Hammersley(i, NumSamples);
-        float3 H = ImportanceSampleGGX(Xi, Roughness, N);
-        float3 L = 2 * dot(V, H) * H - V;
-        float NoV = saturate(dot(N, V));
-        float NoL = saturate(dot(N, L));
-        float NoH = saturate(dot(N, H));
-        float VoH = saturate(dot(V, H));
+//float3 specularIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 SpecularColor, float Roughness, float3 N, float3 V)
+//{
+//    float3 SpecularLighting = 0;
+//    const uint NumSamples = 50;
+//    for (uint i = 0; i < NumSamples; i++)
+//    {
+//        float2 Xi = Hammersley(i, NumSamples);
+//        float3 H = ImportanceSampleGGX(Xi, Roughness, N);
+//        float3 L = 2 * dot(V, H) * H - V;
+//        float NoV = saturate(dot(N, V));
+//        float NoL = saturate(dot(N, L));
+//        float NoH = saturate(dot(N, H));
+//        float VoH = saturate(dot(V, H));
 
-        if (NoL > 0)
-        {
-            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;
-            float G = G_Smith(Roughness, NoV, NoL);
-            float Fc = pow(1 - VoH, 5);
-            float3 F = (1 - Fc) * SpecularColor + Fc;
+//        if (NoL > 0)
+//        {
+//            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;
+//            float G = G_Smith(Roughness, NoV, NoL);
+//            float Fc = pow(1 - VoH, 5);
+//            float3 F = (1 - Fc) * SpecularColor + Fc;
 			
-            //Incident_light = SampleColor * NoL;
-			//Microfacet specular = D*G*F / (4*NoL*NoV)
-			// pdf = D * NoH / (4 * VoH)
+//            //Incident_light = SampleColor * NoL;
+//			//Microfacet specular = D*G*F / (4*NoL*NoV)
+//			// pdf = D * NoH / (4 * VoH)
             
-            SpecularLighting += SampleColor * F * G * VoH / (NoH * NoV);
-        }
-    }
-    return max(SpecularLighting / NumSamples,0);
-}
+//            SpecularLighting += SampleColor * F * G * VoH / (NoH * NoV);
+//        }
+//    }
+//    return max(SpecularLighting / NumSamples,0);
+//}
 
 float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 N)
 {
@@ -192,6 +192,59 @@ float3 sampleIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 surfaceC
         }
     }
     return max(SpecularLighting / NumSamples, 0);
+}
+
+struct IBL_BRDFOUT
+{
+    float3 preC;
+    float3 A;
+    float3 B;
+};
+
+
+IBL_BRDFOUT sampleIBL_BRDF(TextureCube EnvMap, SamplerState EnvMapSampler, float3 surfaceColor, float metalic, float Roughness, float3 N, float3 V)
+{
+    IBL_BRDFOUT OUT;
+    float3 SpecularLighting = 0;
+    const uint NumSamples = 50;
+
+    for (uint i = 0; i < NumSamples; i++)
+    {
+        float2 Xi = Hammersley(i, NumSamples);
+        float3 H  = ImportanceSampleGGX(Xi, Roughness, N);
+        float3 L  = normalize(2 * dot(V, H) * H - V);
+        float NoV = saturate(dot(N, V));
+        float NoL = saturate(dot(N, L));
+        float NoH = saturate(dot(N, H));
+        float VoH = saturate(dot(V, H));
+
+        float r2 = Roughness * Roughness;
+        float k_direct = pow(r2 + 1, 2) / 8;
+
+        float mipLevel = compute_lod(NumSamples, NoH, r2);
+
+        if (NoL > 0)
+        {
+            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, mipLevel).rgb;
+            float  G = GS(NoV, NoL, k_direct);
+            float3 F = fresnelSchlick(NoH, surfaceColor, metalic);
+			
+            //Incident_light = SampleColor * NoL;
+			//Microfacet specular = D*G*F / (4*NoL*NoV)
+			// pdf = D * NoH / (4 * VoH)
+            
+            SpecularLighting += SampleColor * F * G * VoH / (NoH * NoV);
+            //new
+            float G_Vis = G * VoH / (NoH * NoV);
+            float Fc = pow(1 - VoH, 5);
+            OUT.A += (1 - Fc) * G_Vis;
+            OUT.B += Fc * G_Vis;
+        }
+    }
+    OUT.A /= float(NumSamples);
+    OUT.B /= float(NumSamples);
+    OUT.preC = max(SpecularLighting / NumSamples, 0);
+    return OUT;
 }
 
 
