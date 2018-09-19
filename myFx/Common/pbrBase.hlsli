@@ -148,27 +148,10 @@ float3 specularIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 Specul
     return max(SpecularLighting / NumSamples,0);
 }
 
-float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 SpecularColor, float Roughness, float3 N, float3 V)
+float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 N)
 {
-    //there is problem here to calculate the diffuse,
-    float3 IncidentLighting = 0;
-    const uint NumSamples = 50;
-    for (uint i = 0; i < NumSamples; i++)
-    {
-        float2 Xi = Hammersley(i, NumSamples);
-        float3 H = ImportanceSampleGGX(Xi, 0.99, N);
-        float3 L = 2 * dot(V, H) * H - V;
-        float NoV = saturate(dot(N, V));
-        float NoL = saturate(dot(N, L));
-        float NoH = saturate(dot(N, H));
-        float VoH = saturate(dot(V, H));
-        if (NoL > 0)
-        {
-            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, 0).rgb;
-            IncidentLighting += SampleColor * NoL;
-        }
-    }
-    return max(IncidentLighting / NumSamples, 0);
+    float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, N, 8).rgb;
+    return SampleColor;
 }
 
 void tempCorrection(inout float3 LDR)

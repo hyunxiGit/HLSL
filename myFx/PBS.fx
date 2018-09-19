@@ -134,15 +134,13 @@ float4 PS(PS_IN IN) : SV_Target
     float3 Ks = fresnelSchlickRoughness(NoV, Ab.xyz, Me, Ro);
     float3 Kd = float3(1, 1, 1) - Ks;
     Kd *= 1 - Me;
-    float3 ibl_radiance = sampleIBL(EnvMap, EnvMapSampler, Ab.xyz,metalness, Ro, N, V);
-    //float3 ibl_radiance = irradianceSample(EnvMap, EnvMapSampler, N);
+    float3 r_ibl_s = sampleIBL(EnvMap, EnvMapSampler, Ab.xyz, metalness, Ro, N, V);
+    float3 r_ibl_d = diffuseIBL(EnvMap, EnvMapSampler, N);
     float4 AO = float4(1, 1, 1, 1);
-    float3 ibl_diffuse = ibl_radiance * Ab.xyz;
+    float3 ibl_diffuse = r_ibl_d * Ab.xyz;
     float3 ambient = Kd * ibl_diffuse * AO.xyz/PI;
-//    color = Lo + ambient;
-
-    color = Lo+ambient;
-
+    color = Lo + ambient;
+    
     //if (useIBL == 1)
     //{
     //    S.xyz += EnvI * specularIBL(EnvMap, EnvMapSampler, float3(1, 1, 1), Ro, N, V);
@@ -150,7 +148,6 @@ float4 PS(PS_IN IN) : SV_Target
     //}
     //COL = D * DC + S * SC;
     
-
 
 
     //tone map from HDR to LDR
