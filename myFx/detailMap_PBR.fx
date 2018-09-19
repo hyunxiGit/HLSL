@@ -234,21 +234,21 @@ float4 PS(PS_IN IN) : SV_Target
 
     //ambient temp , not correct yet
     float3 ambient;
-    if (EnvI>0)
-    {
-        float3 ibl_radiance = sampleIBL(EnvMap, EnvMapSampler, Ro, N, V);
-        float4 AO = Amap.Sample(a_Sampler, IN.uv).aaaa;
-        float3 ibl_diffuse = ibl_radiance * Ab.xyz;
-        ambient = Fac.Kd * ibl_diffuse * AO.xyz;
-    }
+    //if (EnvI>0)
+    //{
+    //    float3 ibl_radiance = sampleIBL(EnvMap, EnvMapSampler, Ro, N, V);
+    //    float4 AO = Amap.Sample(a_Sampler, IN.uv).aaaa;
+    //    float3 ibl_diffuse = ibl_radiance * Ab.xyz;
+    //    ambient = Fac.Kd * ibl_diffuse * AO.xyz;
+    //}
        
-    else
-    {
+    //else
+    //{
         float AO = Amap.Sample(a_Sampler, IN.uv).a;
         ambient = Fac.Kd * float3(0.1,0.1,0.1) * AO;
-    }
+    //}
         
-    COL.xyz = Lo + ambient * EnvI;
+    COL.xyz = Lo /*+ ambient * EnvI*/;
 
     COL.w = 1;
     return COL;
