@@ -25,6 +25,15 @@ bool name <\
 > = false;
 #define DECLARE_BOOL(name , uiName) DECLARE_BOOL_UI(name , uiName , 0)
 
+#define DECLARE_INT_UI(name , uiName ,min, max, uiOrder) \
+int name <\
+string UIName = (uiName);\
+	string UIWidget = "slider";\
+	float UIMin = min;\
+	float UIMax = max;\
+    int UIOrder = (uiOrder);\
+> = min;
+
 #define DECLARE_FLOAT_UI(name ,uiMin, uiMax,defaultV, uiName, uiOrder) float name <\
     string UIName = (uiName);\
 	string UIWidget = "slider";\

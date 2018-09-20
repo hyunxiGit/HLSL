@@ -1,4 +1,6 @@
+#include "Common/colorBaseBlending.hlsli"
 #include "Common/Common.hlsli"
+
 #define BASE_A "D:/work/HLSL/texture/blendBase.png"
 //d1
 #define D1_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\concrete_a.png"
@@ -8,6 +10,9 @@
 #define D3_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjuu52_8K_Albedo.jpg"
 //d4
 #define D4_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjEfn2_4K_Albedo.jpg"
+
+#define da 4
+#define da_ 5
 
 SCRIPT_FX("Technique=Main;")
 
@@ -20,10 +25,7 @@ TEXTURE2D_UI(blendBase, blendBaseSampler, BASE_A, "Base Map", 0)
 DECLARE_FLOAT_UI(n, 0.0f, 15.0f, 8, "blend power", 1)
 DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 
-bool detailColor <
-	string UIName = "Use detail Map Color";
-    int UIOrder = 3;
-> = false;
+DECLARE_BOOL_UI(detailColor, "Use detail Map Color", 3)
 
 //detail 1
 DECLARE_COLOR_UI(d1HSV, float4(0.299f, 0.206f, 0.12f, 1.0f), "d1", 4)
@@ -43,6 +45,8 @@ TEXTURE2D_UI(d3aMap, d3aMap_Sampler, D3_A, "d3", 9)
 DECLARE_COLOR_UI(d4HSV, float4(0, 0, 1.1f, 1.0f), "d4", 10)
 TEXTURE2D_UI(d4aMap, d4aMap_Sampler, D4_A, "d4", 11)
 
+//how to use vertex color
+DECLARE_INT_UI(VM, "vertext mode" , 0,2,12)
 
 struct VS_IN
 {
@@ -110,6 +114,7 @@ void getWeight(float4 baseColor, inout float weight[2])
 
 void getWeightImg(float4 baseColor, float4 vertexColor, int C, inout float weight[2])
 {
+	//this is the blending meathod with vertex color
     float a = saturate(vertexColor.r + vertexColor.g + vertexColor.b);
     
     if (C == 0)
@@ -126,6 +131,26 @@ void getWeightImg(float4 baseColor, float4 vertexColor, int C, inout float weigh
         float4 b_v = float4(baseColor.xyz * (1 - a) + V1 + V2, 1);
         getWeight(b_v, weight);
     }
+}
+
+float3 baseMap_vertexColor(float4 baseColor, float4 vertexColor, int mode)
+{
+    float3 result;
+    float a = saturate(vertexColor.r + vertexColor.g + vertexColor.b);
+    if (mode == 1)
+    {
+        //use color
+        result = float4(baseColor.xyz * (1 - a) + a * vertexColor.zyx, baseColor.w);
+    }
+    else if (mode == 2)
+    {
+        //use channel
+        float3 V1 = d1HSV * vertexColor.b;
+        float3 V2 = d2HSV * vertexColor.g;
+        float3 V3 = d3HSV * vertexColor.r;
+        result = float4(baseColor.xyz * (1 - a) + V1 + V2+V3, 1);
+    }
+    return result;
 }
 
 float3 overlayBlend(float3 a, float3 b)
@@ -145,16 +170,19 @@ float3 overlayBlend(float3 a, float3 b)
 
 float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
 {
+	//M : blend meathod
     float4 col;
+    float4 base;
 
     //maps
     int UVscale = 5;
    
-    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);
-   
+    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);  
+    base = b_a;
     float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
-
     float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
+    float4 d3_a = d3aMap.Sample(d3aMap_Sampler, IN.uv * UVscale);
+    float4 d4_a = d4aMap.Sample(d4aMap_Sampler, IN.uv * UVscale);
    
     //get weight
     float weight[2] = { 0, 0 };
@@ -163,21 +191,49 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     float blend0 = 1.0f - m;
     float blend1 = m;
 
+	//vertex color
+    if (VM != 0)
+    {
+        base.xyz = baseMap_vertexColor(b_a, IN.col, VM);
+
+    }
+	
+    //if (VM != 0)
+    //{
+    //    baseMap_vertexColor(b_a, float4 vertexColor, int mode)
+
+    //}
+	
+    //prepare detail map
+    float weight1[da] = { 0, 0, 0, 0 };
+    weightData wd;
+    wd.weight = weight1;
+    wd.blendPower = n;
+
+    wd.blendColor[0] = base;
+    wd.blendColor[1] = d1HSV;
+    wd.blendColor[2] = d2HSV;
+    wd.blendColor[3] = d3HSV;
+    wd.blendColor[4] = d4HSV;
+
+    getWeight1(wd);
+
     //abedo
     float3 diffuse;
 
-    if (detailColor)
-    {
-        //color
-        diffuse = b_a * blend0 + (d1_a * weight[0] + d2_a * weight[1]) * blend1;
-    }
-    else
+    //color
+    //diffuse = b_a * blend0 + (d1_a * weight1[0] + d2_a * weight1[1]) * blend1;
+    diffuse = wd.weight[0] * d1HSV + wd.weight[1] * d2HSV + wd.weight[2] * d3HSV + wd.weight[3] * d4HSV;
+    diffuse = wd.weight[0] * d1_a + wd.weight[1] * d2_a + wd.weight[2] * d3_a + wd.weight[3] * d4_a;
+    
+    if (!detailColor)
     {
         //grey
-        d1_a.xyz = (d1_a.x + d1_a.y + d1_a.z) / 3;
-        d2_a.xyz = (d2_a.x + d2_a.y + d2_a.z) / 3;
-        diffuse = b_a.xyz * blend0 + overlayBlend(b_a.xyz, (d1_a * weight[0] + d2_a * weight[1]).xyz) * blend1;
+        float grey = (diffuse.x + diffuse.y + diffuse.z) / 3;
+        diffuse = b_a.xyz * blend0 + overlayBlend(b_a.xyz, grey) * blend1;
     }
+
+    diffuse = b_a.xyz * blend0 + diffuse * blend1;
 
     //normal
     float3 N = IN.nor;
@@ -229,5 +285,6 @@ technique11 VertexByChannel<
         SetPixelShader(CompileShader(ps_5_0, PS_VERTEX(1)));
     }
 }
+
 
 }
