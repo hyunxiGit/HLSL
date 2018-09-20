@@ -2,6 +2,7 @@
 #include "Common/Common.hlsli"
 
 #define BASE_A "D:/work/HLSL/texture/blendBase.png"
+#define BASE_A1 "C:\\Users\\hyunx\Desktop\\detailMap\\max\\texture\\reverbank_d.tga"
 //d1
 #define D1_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\concrete_a.png"
 //d2
@@ -28,25 +29,27 @@ DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
 DECLARE_BOOL_UI(detailColor, "Use detail Map Color", 3)
 
 //detail 1
-DECLARE_COLOR_UI(d1HSV, float4(0.299f, 0.206f, 0.12f, 1.0f), "d1", 4)
-TEXTURE2D_UI(d1aMap, d1aMap_Sampler, D1_A, "d1", 5)
+DECLARE_COLOR_UI(d1HSV, float4(0.75f, 0.725f, 0.71f, 1.0f), "d1", 4)
+TEXTURE2D_UI(d1aMap, d1aMap_Sampler, BASE_A1, "d1", 5)
 
 //detail 2
-DECLARE_COLOR_UI(d2HSV, float4(0.23f, 0.46f, 0.12f, 1.0f), "d2", 6)
+DECLARE_COLOR_UI(d2HSV, float4(0.09f, 0.341f, 0.231f, 1.0f), "d2", 6)
 TEXTURE2D_UI(d2aMap, d2aMap_Sampler, D2_A, "d2", 7)
 
 
 //detail 3
-DECLARE_COLOR_UI(d3HSV, float4(0.86f, 1.0f, 0, 1.0f), "d3", 8)
+DECLARE_COLOR_UI(d3HSV, float4(0.09f, 0.056f, 0.02f, 1.0f), "d3", 8)
 TEXTURE2D_UI(d3aMap, d3aMap_Sampler, D3_A, "d3", 9)
 
 
 //detail 4
-DECLARE_COLOR_UI(d4HSV, float4(0, 0, 1.1f, 1.0f), "d4", 10)
+DECLARE_COLOR_UI(d4HSV, float4(0.404f, 0.153, 0.435f, 1.0f), "d4", 10)
 TEXTURE2D_UI(d4aMap, d4aMap_Sampler, D4_A, "d4", 11)
 
 //how to use vertex color
 DECLARE_INT_UI(VM, "vertext mode" , 0,2,12)
+//blend mode
+DECLARE_INT_UI(BM, "blend mode" , 0,2,13)
 
 struct VS_IN
 {
@@ -168,41 +171,20 @@ float3 overlayBlend(float3 a, float3 b)
     return r;
 }
 
-float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
+float3 blendByColor(float4 b_a, float4 d1_a, float4 d2_a, float4 d3_a, float4 d4_a, float4 vertextCol)
 {
-	//M : blend meathod
-    float4 col;
+    float3 diffuse = float3(0, 0, 0);
     float4 base;
-
-    //maps
-    int UVscale = 5;
-   
-    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);  
     base = b_a;
-    float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
-    float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
-    float4 d3_a = d3aMap.Sample(d3aMap_Sampler, IN.uv * UVscale);
-    float4 d4_a = d4aMap.Sample(d4aMap_Sampler, IN.uv * UVscale);
-   
-    //get weight
-    float weight[2] = { 0, 0 };
-    getWeightImg(b_a, IN.col, C, weight);
-   
     float blend0 = 1.0f - m;
     float blend1 = m;
 
 	//vertex color
     if (VM != 0)
     {
-        base.xyz = baseMap_vertexColor(b_a, IN.col, VM);
+        base.xyz = baseMap_vertexColor(b_a, vertextCol, VM);
 
     }
-	
-    //if (VM != 0)
-    //{
-    //    baseMap_vertexColor(b_a, float4 vertexColor, int mode)
-
-    //}
 	
     //prepare detail map
     float weight1[da] = { 0, 0, 0, 0 };
@@ -219,13 +201,23 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     getWeight1(wd);
 
     //abedo
-    float3 diffuse;
+
 
     //color
     //diffuse = b_a * blend0 + (d1_a * weight1[0] + d2_a * weight1[1]) * blend1;
-    diffuse = wd.weight[0] * d1HSV + wd.weight[1] * d2HSV + wd.weight[2] * d3HSV + wd.weight[3] * d4HSV;
-    diffuse = wd.weight[0] * d1_a + wd.weight[1] * d2_a + wd.weight[2] * d3_a + wd.weight[3] * d4_a;
+  
     
+    if (BM == 0)
+    {
+		//debug
+        diffuse = wd.weight[0] * d1HSV + wd.weight[1] * d2HSV + wd.weight[2] * d3HSV + wd.weight[3] * d4HSV;
+
+    }
+    else if (BM == 1)
+    {
+		//color map
+        diffuse = wd.weight[0] * d1_a + wd.weight[1] * d2_a + wd.weight[2] * d3_a + wd.weight[3] * d4_a;
+    }
     if (!detailColor)
     {
         //grey
@@ -234,7 +226,39 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     }
 
     diffuse = b_a.xyz * blend0 + diffuse * blend1;
+    return diffuse;
 
+}
+
+float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
+{
+	//M : blend meathod
+    float4 col;
+    float3 diffuse = float3(0, 0, 0);
+
+    //maps
+    int UVscale = 5;
+    float4 blendmaps[da_];
+    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);  
+    float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
+    float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
+    float4 d3_a = d3aMap.Sample(d3aMap_Sampler, IN.uv * UVscale);
+    float4 d4_a = d4aMap.Sample(d4aMap_Sampler, IN.uv * UVscale);
+
+	//blend meathods
+    if (BM == 0)
+    {
+        diffuse = blendByColor(b_a, d1_a, d2_a, d3_a, d4_a, IN.col);
+    }
+    else if (BM == 1)
+    {
+		//use blend map
+    }
+    else if (BM == 2)
+    {
+		//use height map
+    }
+        
     //normal
     float3 N = IN.nor;
 
@@ -250,6 +274,7 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     float3 S = litV.y * litV.z  * (diffuse * 0.5 + float3(1, 1, 1) * 0.5);
 
     col.xyz = D;
+
     col.w = 1;
     return col;
 }
