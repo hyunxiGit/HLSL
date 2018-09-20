@@ -36,11 +36,9 @@ TEXTURE2D_UI(d1aMap, d1aMap_Sampler, BASE_A1, "d1", 5)
 DECLARE_COLOR_UI(d2HSV, float4(0.09f, 0.341f, 0.231f, 1.0f), "d2", 6)
 TEXTURE2D_UI(d2aMap, d2aMap_Sampler, D2_A, "d2", 7)
 
-
 //detail 3
 DECLARE_COLOR_UI(d3HSV, float4(0.09f, 0.056f, 0.02f, 1.0f), "d3", 8)
 TEXTURE2D_UI(d3aMap, d3aMap_Sampler, D3_A, "d3", 9)
-
 
 //detail 4
 DECLARE_COLOR_UI(d4HSV, float4(0.404f, 0.153, 0.435f, 1.0f), "d4", 10)
@@ -50,6 +48,11 @@ TEXTURE2D_UI(d4aMap, d4aMap_Sampler, D4_A, "d4", 11)
 DECLARE_INT_UI(VM, "vertext mode" , 0,2,12)
 //blend mode
 DECLARE_INT_UI(BM, "blend mode" , 0,2,13)
+
+
+DECLARE_FLOAT_UI(d1H, 0.0f, 10.0f, 9, "d1 height", 14)
+DECLARE_FLOAT_UI(d2H, 0.0f, 10.0f, 6, "d1 height", 15)
+DECLARE_FLOAT_UI(d3H, 0.0f, 10.0f, 3, "d1 height", 16)
 
 struct VS_IN
 {
@@ -237,7 +240,7 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     float3 diffuse = float3(0, 0, 0);
 
     //maps
-    int UVscale = 5;
+    int UVscale = 15;
     float4 blendmaps[da_];
     float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);  
     float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
@@ -252,7 +255,35 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     }
     else if (BM == 1)
     {
-		//use blend map
+		//use heigh map to blend
+        float3 VC = IN.col;
+        float M = b_a.a;
+        float4 diffuse1 = float4 (0,0,0,0);
+        float f1h = d1H / 10.0f;
+        float f2h = d2H / 10.0f;
+        float f3h = d3H / 10.0f;
+
+        if (M > f1h-0.1)
+        {
+            diffuse1.r = 1;
+        }
+        if (M < f1h+0.1 && M > f2h-0.1)
+        {
+            diffuse1.b = 1;
+        }
+        if (M < f2h + 0.1 && M > f3h-0.1)
+        {
+            diffuse1.g = 1;
+        }
+        if (M < f3h+0.1)
+        {
+            diffuse1.a = 1;
+        }
+
+        diffuse = diffuse1.r * d1HSV + diffuse1.g * d2HSV + diffuse1.b * d3HSV + diffuse1.a * d4HSV;
+        
+
+
     }
     else if (BM == 2)
     {

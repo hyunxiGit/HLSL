@@ -7,6 +7,9 @@ float4x4 world : WORLD;
 float4x4 worldI : WorldInverseTranspose;
 
 #define PI 3.14159265359
+#define COLOR_R float3(1,0,0)
+#define COLOR_G float3(0,1,0)
+#define COLOR_B float3(0,0,1)
 #define DielectricSpec float4(0.22f, 0.22f, 0.22f, 0.779f)
 
 #define SCRIPT_FX(usetechnique) float Script : STANDARDSGLOBAL <\
