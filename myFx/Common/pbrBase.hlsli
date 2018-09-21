@@ -70,6 +70,7 @@ float RadicalInverse_VdC(uint bits)
 
 float2 Hammersley(uint i, uint N)
 {
+    //Hammersley 2d
     return float2(float(i) / float(N), RadicalInverse_VdC(i));
 }
 
@@ -79,10 +80,14 @@ float3 ImportanceSampleGGX(float2 Xi, float Roughness, float3 N)
     float Phi = 2 * PI * Xi.x;
     float CosTheta = sqrt((1 - Xi.y) / (1 + (a * a - 1) * Xi.y));
     float SinTheta = sqrt(1 - CosTheta * CosTheta);
+
+    // from spherical coordinates to cartesian coordinates
     float3 H;
     H.x = SinTheta * cos(Phi);
     H.y = SinTheta * sin(Phi);
     H.z = CosTheta;
+
+    //from tangent-space to world-space
     float3 UpVector = abs(N.z) < 0.999 ? float3(0, 0, 1) : float3(1, 0, 0);
     float3 TangentX = normalize(cross(UpVector, N));
     float3 TangentY = cross(N, TangentX);
@@ -167,7 +172,7 @@ float3 sampleIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 surfaceC
     {
         float2 Xi = Hammersley(i, NumSamples);
         float3 H = ImportanceSampleGGX(Xi, Roughness, N);
-        float3 L = 2 * dot(V, H) * H - V;
+        float3 L = normalize(2 * dot(V, H) * H - V);
         float NoV = saturate(dot(N, V));
         float NoL = saturate(dot(N, L));
         float NoH = saturate(dot(N, H));
@@ -221,7 +226,9 @@ IBL_BRDFOUT sampleIBL_BRDF(TextureCube EnvMap, SamplerState EnvMapSampler, float
         float r2 = Roughness * Roughness;
         float k_direct = pow(r2 + 1, 2) / 8;
 
-        float mipLevel = compute_lod(NumSamples, NoH, r2);
+        //this should be used if the mipmap is embeded roughness
+        //float mipLevel = compute_lod(NumSamples, NoH, r2);
+        float mipLevel = 0;
 
         if (NoL > 0)
         {

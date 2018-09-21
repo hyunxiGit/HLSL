@@ -130,7 +130,6 @@ float4 PS(PS_IN IN) : SV_Target
     float3 radiance = pointLight(myLightColor, N, myLight, IN.P_W.xyz);
     float3 Lo = (Fac.Kd * Ab.xyz / PI + Fac.specular) * radiance * NoL;
 
-
     //ambient light
     float4 AO = float4(1, 1, 1, 1);
 
@@ -140,7 +139,8 @@ float4 PS(PS_IN IN) : SV_Target
     
     float3 r_ibl_d = diffuseIBL(EnvMap, EnvMapSampler, N);
     float3 ibl_diffuse = Kd *r_ibl_d * Ab.xyz;
-    
+   
+
     IBL_BRDFOUT ibl_Fac = sampleIBL_BRDF(EnvMap, EnvMapSampler, Ab.xyz, metalness, Ro, N, V);
     float3 ibl_spec = ibl_Fac.preC * (Ks * ibl_Fac.A + ibl_Fac.B);
 
