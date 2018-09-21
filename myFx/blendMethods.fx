@@ -51,8 +51,8 @@ DECLARE_INT_UI(BM, "blend mode" , 0,2,13)
 
 
 DECLARE_FLOAT_UI(d1H, 0.0f, 10.0f, 9, "d1 height", 14)
-DECLARE_FLOAT_UI(d2H, 0.0f, 10.0f, 6, "d1 height", 15)
-DECLARE_FLOAT_UI(d3H, 0.0f, 10.0f, 3, "d1 height", 16)
+DECLARE_FLOAT_UI(d2H, 0.0f, 10.0f, 6, "d2 height", 15)
+DECLARE_FLOAT_UI(d3H, 0.0f, 10.0f, 3, "d3 height", 16)
 
 struct VS_IN
 {
@@ -233,81 +233,55 @@ float3 blendByColor(float4 b_a, float4 d1_a, float4 d2_a, float4 d3_a, float4 d4
 
 }
 
-float3 blendByHeight(float height)
-{
-    //9.784 , 5.064 ,3.336
-    float3 diffuse = float3(0, 0, 0);
-    //use heigh map to blend
-    float M = height;
-    float4 diffuse1 = float4(0, 0, 0, 0);
-    float f1h = d1H / 10.0f;
-    float f2h = d2H / 10.0f;
-    float f3h = d3H / 10.0f;
-
-    if (M > f1h - 0.1)
-    {
-        diffuse1.r = 1;
-    }
-    if (M < f1h + 0.1 && M > f2h - 0.1)
-    {
-        diffuse1.b = 1;
-    }
-    if (M < f2h + 0.1 && M > f3h - 0.1)
-    {
-        diffuse1.g = 1;
-    }
-    if (M < f3h + 0.1)
-    {
-        diffuse1.a = 1;
-    }
-
-    diffuse = diffuse1.r * d1HSV + diffuse1.g * d2HSV + diffuse1.b * d3HSV + diffuse1.a * d4HSV;
-    return diffuse;
-}
-
-float linearMap(inout float M, float A, float B )
-{
-    //map v.x , v.y to 0 , 1 , get value M in new range
-    float N = saturate((M - A) / (B - A));
-    return N;
-}
-
-float3 blendByNormal(float NoU)
+float3 anchorDistribute(float M, float f1h, float f2h, float f3h)
 {
     float3 diffuse = float3(0, 0, 0);
-    //10.0 , 8.368 , 5.732
-    //use heigh map to blend
-    float M = NoU;
     float4 diffuse1 = float4(0, 0, 0, 0);
-    float f0h = 0.0f;
-    float f1h = d1H / 10.0f;
-    float f2h = d2H / 10.0f;
-    float f3h = d3H / 10.0f;
-    float f4h = 1.0f;
-
-    float th = 0.02f;
 
     if (M > f1h)
     {
         float N = linearMap(M, f1h, 1);
-        diffuse = COLOR_R * N + COLOR_G * (1 - N);
+        diffuse = COLOR_R * N + COLOR_Y * (1 - N);
     }
-    if (M < f1h && M > f2h )
+    if (M < f1h && M > f2h)
     {
         float N = linearMap(M, f2h, f1h);
-        diffuse = COLOR_G * N + COLOR_B * (1 - N);
+        diffuse = COLOR_Y * N + COLOR_G * (1 - N);
     }
-    //if (M < f2h + th && M > f3h - th)
-    //{
-    //    diffuse1.g = 1;
-    //}
-    //if (M < f3h + th)
-    //{
-    //    diffuse1.a = 1;
-    //}
+    if (M < f2h && M > f3h)
+    {
+        float N = linearMap(M, f3h, f2h);
+        diffuse = COLOR_G * N + COLOR_C * (1 - N);
+    }
+    if (M < f3h)
+    {
+        float N = linearMap(M, 0, f3h);
+        diffuse = COLOR_C * N + COLOR_B * (1 - N);
+    }
+    return diffuse;
+}
 
-    //diffuse = diffuse1.r * d1HSV + diffuse1.b * d2HSV /*+ diffuse1.b * d3HSV + diffuse1.a * d4HSV*/;
-    //diffuse = diffuse1.r;
+float3 blendByHeight(float height)
+{
+    //9.784 , 5.064 ,3.336
+    //use heigh map to blend
+    float f1h = d1H / 10.0f;
+    float f2h = d2H / 10.0f;
+    float f3h = d3H / 10.0f;
+    float3 diffuse = anchorDistribute(height, f1h, f2h, f3h);
+    return diffuse;
+}
+
+float3 blendByNormal(float NoU)
+{
+    //use heigh map to blend
+    //10.0 , 8.368 , 5.732
+    
+    float f1h = d1H / 10.0f;
+    float f2h = d2H / 10.0f;
+    float f3h = d3H / 10.0f;
+    float3 diffuse = anchorDistribute(NoU, f1h, f2h, f3h);
+    return diffuse;
     return diffuse;
 }
 
@@ -335,7 +309,6 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     {
 		//use heigh to blend
         diffuse = blendByHeight(b_a.a);
-
     }
     else if (BM == 2)
     {

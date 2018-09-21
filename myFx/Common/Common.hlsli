@@ -8,8 +8,11 @@ float4x4 worldI : WorldInverseTranspose;
 
 #define PI 3.14159265359
 #define COLOR_R float3(1,0,0)
+#define COLOR_Y float3(1,1,0)
 #define COLOR_G float3(0,1,0)
+#define COLOR_C float3(0,1,1)
 #define COLOR_B float3(0,0,1)
+#define COLOR_V float3(1,0,1)
 #define DielectricSpec float4(0.22f, 0.22f, 0.22f, 0.779f)
 
 #define SCRIPT_FX(usetechnique) float Script : STANDARDSGLOBAL <\
@@ -226,5 +229,14 @@ float blend_overlay(float a, float b)
     saturate(r);
     return r;
 }
+
+
+float linearMap(inout float M, float A, float B)
+{
+    //map A, B to 0 , 1 , get value M in new range
+    float N = saturate((M - A) / (B - A));
+    return N;
+}
+
 
 #endif
