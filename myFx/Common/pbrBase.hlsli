@@ -224,7 +224,7 @@ IBL_BRDFOUT sampleIBL_BRDF(TextureCube EnvMap, SamplerState EnvMapSampler, float
         float VoH = saturate(dot(V, H));
 
         float r2 = Roughness * Roughness;
-        float k_direct = pow(r2 + 1, 2) / 8;
+        float k_ibl = r2 *r2 / 8;
 
         //this should be used if the mipmap is embeded roughness
         //float mipLevel = compute_lod(NumSamples, NoH, r2);
@@ -233,7 +233,7 @@ IBL_BRDFOUT sampleIBL_BRDF(TextureCube EnvMap, SamplerState EnvMapSampler, float
         if (NoL > 0)
         {
             float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, mipLevel).rgb;
-            float  G = GS(NoV, NoL, k_direct);
+            float G = GS(NoV, NoL, k_ibl);
             float3 F = fresnelSchlick(NoH, surfaceColor, metalic);
 			
             //Incident_light = SampleColor * NoL;

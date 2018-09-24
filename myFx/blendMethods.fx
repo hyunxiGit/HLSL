@@ -269,10 +269,15 @@ float3 blendByHeight(float height)
     float f2h = d2H / 10.0f;
     float f3h = d3H / 10.0f;
     float3 diffuse = anchorDistribute(height, f1h, f2h, f3h);
+    
+    float blend0 = 1.0f - m;
+    float blend1 = m;
+
+    diffuse = height * blend0 + diffuse * blend1;
     return diffuse;
 }
 
-float3 blendByNormal(float NoU)
+float3 blendByNormal(float NoU, float3 N)
 {
     //use heigh map to blend
     //10.0 , 8.368 , 5.732
@@ -281,7 +286,12 @@ float3 blendByNormal(float NoU)
     float f2h = d2H / 10.0f;
     float f3h = d3H / 10.0f;
     float3 diffuse = anchorDistribute(NoU, f1h, f2h, f3h);
-    return diffuse;
+    
+    float blend0 = 1.0f - m;
+    float blend1 = m;
+    
+    diffuse = N * blend0 + diffuse * blend1;
+
     return diffuse;
 }
 
@@ -314,7 +324,7 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     {
 		//use normal
         float NoU = dot(IN.nor, float3(0, 0, 1));
-        diffuse = blendByNormal(NoU);
+        diffuse = blendByNormal(NoU, IN.nor);
     }
         
     //normal
