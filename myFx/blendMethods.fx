@@ -1,16 +1,20 @@
 #include "Common/colorBaseBlending.hlsli"
 #include "Common/Common.hlsli"
 
-#define BASE_A "D:/work/HLSL/texture/blendBase.png"
 #define BASE_A1 "C:\\Users\\hyunx\Desktop\\detailMap\\max\\texture\\reverbank_d.tga"
+#define BASE_B "C:\\Users\\hyunx\Desktop\\detailMap\\max\\texture\\blendMap.jpg.jpg"
 //d1
-#define D1_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\concrete_a.png"
+#define D1_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\omfrl_4K_Albedo.tga"
+#define D1_D "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\omfrl_4K_Displacement.jpg"
 //d2
-#define D2_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\oiloP_4K_Albedo.jpg"
+#define D2_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\oiloP_4K_Albedo.tga"
+#define D2_D "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\oiloP_4K_Displacement.jpg"
 //d3
-#define D3_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjuu52_8K_Albedo.jpg"
+#define D3_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjuu52_4K_Albedo.tga"
+#define D3_D "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjuu52_4K_Displacement.jpg"
 //d4
 #define D4_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjEfn2_4K_Albedo.jpg"
+#define D4_D "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\ppjEfn2_4K_Displacement.jpg"
 
 #define da 4
 #define da_ 5
@@ -21,7 +25,8 @@ SCRIPT_FX("Technique=Main;")
 DECLARE_LIGHT(Lamp0Pos, "PointLight0", Lamp0Col, "Light Position", 0)
 
 //base map
-TEXTURE2D_UI(blendBase, blendBaseSampler, BASE_A, "Base Map", 0)
+TEXTURE2D_UI(blendBase, blendBaseSampler, BASE_A1, "Base Map", 0)
+TEXTURE2D_UI(blendMap, blendMapSampler, BASE_B, "Blend Map", 0)
 //blending parameters
 DECLARE_FLOAT_UI(n, 0.0f, 15.0f, 8, "blend power", 1)
 DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
@@ -30,7 +35,7 @@ DECLARE_BOOL_UI(detailColor, "Use detail Map Color", 3)
 
 //detail 1
 DECLARE_COLOR_UI(d1HSV, float4(0.75f, 0.725f, 0.71f, 1.0f), "d1", 4)
-TEXTURE2D_UI(d1aMap, d1aMap_Sampler, BASE_A1, "d1", 5)
+TEXTURE2D_UI(d1aMap, d1aMap_Sampler, D1_A, "d1", 5)
 
 //detail 2
 DECLARE_COLOR_UI(d2HSV, float4(0.09f, 0.341f, 0.231f, 1.0f), "d2", 6)
@@ -47,7 +52,7 @@ TEXTURE2D_UI(d4aMap, d4aMap_Sampler, D4_A, "d4", 11)
 //how to use vertex color
 DECLARE_INT_UI(VM, "vertext mode" , 0,2,12)
 //blend mode
-DECLARE_INT_UI(BM, "blend mode" , 0,2,13)
+DECLARE_INT_UI(BM, "blend mode" , 0,3,13)
 
 
 DECLARE_FLOAT_UI(d1H, 0.0f, 10.0f, 9, "d1 height", 14)
@@ -295,6 +300,37 @@ float3 blendByNormal(float NoU, float3 N)
     return diffuse;
 }
 
+float3 blendByMap(float4 d1_a, float4 d2_a,float4 bMap)
+{
+    float3 diffuse = float3(0, 0, 0);
+    float f1h = d1H / 5.0f-1;
+    float d2 = d2_a.a ;
+    
+    float o1 = bMap.r;
+    float o2 = 1 - o1;
+
+    float mask = blend_overlay(d2, bMap);
+    
+    
+    if (bMap.r < 0.01)
+    {
+        mask = bMap.r;
+    }
+    else if (bMap.r > 0.99)
+    {
+        mask = bMap.r;
+    }
+    //mask = saturate(mask);
+    float col1 = 1;
+    float col2 = 0;
+
+
+
+    diffuse = d1_a * (1 - mask) + d2_a * mask;
+    //diffuse = col1 * (1 - mask) + col2 * mask;
+    return diffuse;
+}
+
 float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
 {
 	//M : blend meathod
@@ -305,6 +341,7 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     int UVscale = 15;
     float4 blendmaps[da_];
     float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);  
+    float4 blend = blendMap.Sample(blendMapSampler, IN.uv);
     float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
     float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
     float4 d3_a = d3aMap.Sample(d3aMap_Sampler, IN.uv * UVscale);
@@ -313,6 +350,7 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
 	//blend meathods
     if (BM == 0)
     {
+        //use base color
         diffuse = blendByColor(b_a, d1_a, d2_a, d3_a, d4_a, IN.col);
     }
     else if (BM == 1)
@@ -326,9 +364,14 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
         float NoU = dot(IN.nor, float3(0, 0, 1));
         diffuse = blendByNormal(NoU, IN.nor);
     }
+    else if (BM ==3)
+    {
+        //use blend map
+        diffuse = blendByMap(b_a, d3_a, IN.col);
+    }
         
     //normal
-    float3 N = IN.nor;
+        float3 N = IN.nor;
 
     //lighting
     float3 A = float3(0.36f, 0.37f, 0.38f) * 0.01;

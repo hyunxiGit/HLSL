@@ -328,8 +328,8 @@ technique test2
         //alphafunc = greaterequal;
         //alpharef = 200;
 
-        VertexShader = compile vs_3_0 VS();
-        PixelShader = compile ps_3_0 PS2();
+        VertexShader = compile vs_5_0 VS();
+        PixelShader = compile ps_5_0 PS2();
     }
 }
 
