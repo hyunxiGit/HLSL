@@ -13,7 +13,7 @@
 #define D3_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjuu52_4K_Albedo.tga"
 #define D3_D "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjuu52_4K_Displacement.jpg"
 //d4
-#define D4_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjEfn2_4K_Albedo.jpg"
+#define D4_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\pjEfn2_4K_Albedo.tga"
 #define D4_D "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\ppjEfn2_4K_Displacement.jpg"
 
 #define da 4
@@ -303,12 +303,16 @@ float3 blendByNormal(float NoU, float3 N)
 float3 blendByMap(float4 d1_a, float4 d2_a,float4 bMap)
 {
     float3 diffuse = float3(0, 0, 0);
-    float f1h = d1H / 5.0f-1;
+    float f1h = d1H /10;
+    float f2h = d2H /10;
+    
     float d2 = d2_a.a ;
+    d2 = linearMap(d2_a.a, f1h, f2h);
     
     float o1 = bMap.r;
     float o2 = 1 - o1;
 
+    
     float mask = blend_overlay(d2, bMap);
     
     
@@ -316,7 +320,7 @@ float3 blendByMap(float4 d1_a, float4 d2_a,float4 bMap)
     {
         mask = bMap.r;
     }
-    else if (bMap.r > 0.99)
+    else if (bMap.r > 0.9999)
     {
         mask = bMap.r;
     }
@@ -328,6 +332,8 @@ float3 blendByMap(float4 d1_a, float4 d2_a,float4 bMap)
 
     diffuse = d1_a * (1 - mask) + d2_a * mask;
     //diffuse = col1 * (1 - mask) + col2 * mask;
+
+    
     return diffuse;
 }
 
@@ -366,8 +372,8 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     }
     else if (BM ==3)
     {
-        //use blend map
-        diffuse = blendByMap(b_a, d3_a, IN.col);
+        //use blend map or vertext blend
+        diffuse = blendByMap(b_a, d4_a, IN.col);
     }
         
     //normal
