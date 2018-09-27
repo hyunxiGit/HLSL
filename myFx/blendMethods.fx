@@ -2,7 +2,8 @@
 #include "Common/Common.hlsli"
 
 #define BASE_A1 "C:\\Users\\hyunx\Desktop\\detailMap\\max\\texture\\reverbank_d.tga"
-#define BASE_B "C:\\Users\\hyunx\Desktop\\detailMap\\max\\texture\\blendMap.jpg.jpg"
+#define BASE_A2 "C:\\Users\\hyunx\Desktop\\detailMap\\max\\texture\\reverbank_do.tga"
+#define BASE_N "C:\\Users\\hyunx\Desktop\\detailMap\\max\\texture\\riverbank_n.bmp"
 //d1
 #define D1_A "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\omfrl_4K_Albedo.tga"
 #define D1_D "C:\\Users\\hyunx\\Desktop\\detailMap\\blending\\omfrl_4K_Displacement.jpg"
@@ -26,7 +27,8 @@ DECLARE_LIGHT(Lamp0Pos, "PointLight0", Lamp0Col, "Light Position", 0)
 
 //base map
 TEXTURE2D_UI(blendBase, blendBaseSampler, BASE_A1, "Base Map", 0)
-TEXTURE2D_UI(blendMap, blendMapSampler, BASE_B, "Blend Map", 0)
+TEXTURE2D_UI(blendBase_o, blendBaseSampler_o, BASE_A2, "Base Map original", 0)
+TEXTURE2D_UI(baseNormal, baseNormalSampler, BASE_N, "Normal Map", 0)
 //blending parameters
 DECLARE_FLOAT_UI(n, 0.0f, 15.0f, 8, "blend power", 1)
 DECLARE_FLOAT_UI(m, 0.0f, 1.0f, 0.0f, "blend strength", 2)
@@ -179,64 +181,7 @@ float3 overlayBlend(float3 a, float3 b)
     return r;
 }
 
-float3 blendByColor(float4 b_a, float4 d1_a, float4 d2_a, float4 d3_a, float4 d4_a, float4 vertextCol)
-{
-    float3 diffuse = float3(0, 0, 0);
-    float4 base;
-    base = b_a;
-    float blend0 = 1.0f - m;
-    float blend1 = m;
 
-	//vertex color
-    if (VM != 0)
-    {
-        base.xyz = baseMap_vertexColor(b_a, vertextCol, VM);
-
-    }
-	
-    //prepare detail map
-    float weight1[da] = { 0, 0, 0, 0 };
-    weightData wd;
-    wd.weight = weight1;
-    wd.blendPower = n;
-
-    wd.blendColor[0] = base;
-    wd.blendColor[1] = d1HSV;
-    wd.blendColor[2] = d2HSV;
-    wd.blendColor[3] = d3HSV;
-    wd.blendColor[4] = d4HSV;
-
-    getWeight1(wd);
-
-    //abedo
-
-
-    //color
-    //diffuse = b_a * blend0 + (d1_a * weight1[0] + d2_a * weight1[1]) * blend1;
-  
-    
-    if (BM == 0)
-    {
-		//debug
-        diffuse = wd.weight[0] * d1HSV + wd.weight[1] * d2HSV + wd.weight[2] * d3HSV + wd.weight[3] * d4HSV;
-
-    }
-    else if (BM == 1)
-    {
-		//color map
-        diffuse = wd.weight[0] * d1_a + wd.weight[1] * d2_a + wd.weight[2] * d3_a + wd.weight[3] * d4_a;
-    }
-    if (!detailColor)
-    {
-        //grey
-        float grey = (diffuse.x + diffuse.y + diffuse.z) / 3;
-        diffuse = b_a.xyz * blend0 + overlayBlend(b_a.xyz, grey) * blend1;
-    }
-
-    diffuse = b_a.xyz * blend0 + diffuse * blend1;
-    return diffuse;
-
-}
 
 float3 anchorDistribute(float M, float f1h, float f2h, float f3h)
 {
@@ -329,12 +274,71 @@ float3 blendByMap(float4 d1_a, float4 d2_a,float4 bMap)
     float col2 = 0;
 
 
-
+    //mask = bMap.r;
     diffuse = d1_a * (1 - mask) + d2_a * mask;
     //diffuse = col1 * (1 - mask) + col2 * mask;
 
     
     return diffuse;
+}
+
+float3 blendByColor(float4 b_a, float4 d1_a, float4 d2_a, float4 d3_a, float4 d4_a, float4 vertextCol)
+{
+    float3 diffuse = float3(0, 0, 0);
+    float4 base;
+    base = b_a;
+    float blend0 = 1.0f - m;
+    float blend1 = m;
+
+	//vertex color
+    if (VM != 0)
+    {
+        base.xyz = baseMap_vertexColor(b_a, vertextCol, VM);
+
+    }
+	
+    //prepare detail map
+    float weight1[da] = { 0, 0, 0, 0 };
+    weightData wd;
+    wd.weight = weight1;
+    wd.blendPower = n;
+
+    wd.blendColor[0] = base;
+    wd.blendColor[1] = d1HSV;
+    wd.blendColor[2] = d2HSV;
+    wd.blendColor[3] = d3HSV;
+    wd.blendColor[4] = d4HSV;
+
+    getWeight1(wd);
+
+    //abedo
+
+
+    //color
+    //diffuse = b_a * blend0 + (d1_a * weight1[0] + d2_a * weight1[1]) * blend1;
+  
+    
+    if (BM == 0)
+    {
+		//debug
+        diffuse = wd.weight[0] * d1HSV + wd.weight[1] * d2HSV + wd.weight[2] * d3HSV + wd.weight[3] * d4HSV;
+
+    }
+    else if (BM == 1)
+    {
+		//color map
+        diffuse = wd.weight[0] * d1_a + wd.weight[1] * d2_a + wd.weight[2] * d3_a + wd.weight[3] * d4_a;
+    }
+    if (!detailColor)
+    {
+        //grey
+        float grey = (diffuse.x + diffuse.y + diffuse.z) / 3;
+        diffuse = b_a.xyz * blend0 + overlayBlend(b_a.xyz, grey) * blend1;
+    }
+
+    diffuse = b_a.xyz * blend0 + diffuse * blend1;
+    return diffuse;
+
 }
 
 float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
@@ -347,7 +351,7 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     int UVscale = 15;
     float4 blendmaps[da_];
     float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);  
-    float4 blend = blendMap.Sample(blendMapSampler, IN.uv);
+    float3 normal = baseNormal.Sample(baseNormalSampler, IN.uv).xyz;
     float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
     float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
     float4 d3_a = d3aMap.Sample(d3aMap_Sampler, IN.uv * UVscale);
@@ -373,7 +377,7 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     else if (BM ==3)
     {
         //use blend map or vertext blend
-        diffuse = blendByMap(b_a, d4_a, IN.col);
+        diffuse = blendByMap(b_a, d1_a, IN.col);
     }
         
     //normal
@@ -391,6 +395,253 @@ float4 PS_VERTEX(PS_IN IN, uniform int C) : SV_Target
     float3 S = litV.y * litV.z  * (diffuse * 0.5 + float3(1, 1, 1) * 0.5);
 
     col.xyz = D;
+
+    col.w = 1;
+    return col;
+}
+
+float heighDetail(float a, float b)
+{
+    //a is the greyscale displacement map embeded in alpha
+    float3 diffuse = float3(0, 0, 0);
+    //float f1h = d1H / 10;
+    //float f2h = d2H / 10; 
+    //float d2 = linearMap(a, f1h, f2h);
+    
+    float mask = blend_overlay(a, b);
+    
+    if (b < 0.01)
+    {
+        mask = b;
+    }
+    else if (b > 0.9999)
+    {
+        mask = b;
+    }
+    //mask = saturate(mask);
+    //float col1 = 1;
+    //float col2 = 0;
+
+
+    //mask = bMap.r;
+    //diffuse = d1_a * (1 - mask) + d2_a * mask;
+    //diffuse = col1 * (1 - mask) + col2 * mask;
+
+    
+    return mask;
+}
+
+float4 anchorDistribute_M(float4 d1_a, float4 d2_a, float4 d3_a, float4 d4_a, float M, float f1h, float f2h, float f3h)
+{
+    float4 diffuse = float4(0, 0, 0,0);
+
+    float4 m1 = d1_a;
+    float4 m2 = d2_a;
+    float4 m3 = d3_a;
+    float4 m4 = d4_a;
+    float4 m5 = d4_a;
+
+
+    float a = 0;
+
+    if (M > f1h)
+    {
+        float N = linearMap(M, f1h, 1);
+        diffuse = m1 * N + m2 * (1 - N);
+
+    }
+    if (M < f1h && M > f2h)
+    {
+        float N = linearMap(M, f2h, f1h);
+        diffuse = m2 * N + m3 * (1 - N);
+    }
+    if (M < f2h && M > f3h)
+    {
+        float N = linearMap(M, f3h, f2h);
+        diffuse = m3 * N + m4 * (1 - N);
+    }
+    if (M < f3h)
+    {
+        float N = linearMap(M, 0, f3h);
+        diffuse = m4 * N + m5 * (1 - N);
+    }
+    return diffuse;
+}
+
+float4 blendByNormal_M(float4 b_a, float4 d1_a, float4 d2_a, float4 d3_a, float4 d4_a, float NoU)
+{
+    //use heigh map to blend
+    //10.0 , 8.368 , 5.732
+    
+    float f1h = d1H / 10.0f;
+    float f2h = d2H / 10.0f;
+    float f3h = d3H / 10.0f;
+
+    float4 diffuse = anchorDistribute_M(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK, COLOR_BLACK, NoU, f1h, 0.8, f3h);
+    
+    float blend0 = 1.0f - m;
+    float blend1 = m;
+    
+    //diffuse = b_a * blend0 + diffuse * blend1;
+    //float a = linearMap(diffuse.a, 0.5, 0.6);
+    //a = NoU *a /2; //blend_overlay(a, NoU * NoU/2);
+    //diffuse.xyz = b_a.xyz * (1 - a) + diffuse.xyz * a;
+    return diffuse;
+}
+
+float3 blendByColor_M(float4 b_a, float4 d1_a, float4 d2_a, float4 d3_a, float4 d4_a, float4 vertextCol)
+{
+    float3 diffuse = float3(0, 0, 0);
+    float4 base;
+    base = b_a;
+    //float blend0 = 1.0f - m;
+    //float blend1 = m;
+
+	//vertex color
+    if (VM != 0)
+    {
+        base.xyz = baseMap_vertexColor(b_a, vertextCol, VM);
+
+    }
+	
+    //prepare detail map
+    float weight1[da] = { 0, 0, 0, 0 };
+    weightData wd;
+    wd.weight = weight1;
+    wd.blendPower = n;
+
+    wd.blendColor[0] = base;
+    wd.blendColor[1] = d1HSV;
+    wd.blendColor[2] = d2HSV;
+    wd.blendColor[3] = d3HSV;
+    wd.blendColor[4] = d4HSV;
+
+    getWeight1(wd);
+  
+    int debug = 0;
+    if (debug == 1)
+    {
+		//debug
+        //diffuse = wd.weight[0] * d1HSV + wd.weight[1] * d2HSV + wd.weight[2] * d3HSV + wd.weight[3] * d4HSV;
+        diffuse = wd.weight[0] * COLOR_R + wd.weight[1] * COLOR_G + wd.weight[2] * COLOR_B + wd.weight[3] * COLOR_Y;
+
+    }
+    else if (debug == 0)
+    {
+		//color map
+
+        //desaturate
+        float desaturate_scale = 0.9;
+
+        diffuse = wd.weight[0] * d1_a + wd.weight[1] * d2_a + wd.weight[2] * d3_a + wd.weight[3] * d4_a;
+        //overlay and normal blending
+        float k1 = 1;
+        diffuse = blend_overlay(b_a, desaturate(diffuse, desaturate_scale)) * k1 + diffuse * (1 - k1);
+        //diffuse = b_a;
+    }
+
+    //diffuse = b_a.xyz * blend0 + diffuse * blend1;
+    return diffuse;
+}
+
+float4 blendByHeight_M(float4 b_a, float4 d1_a, float4 d2_a, float4 d3_a, float4 d4_a, float height)
+{
+    //9.784 , 5.064 ,3.336
+    //use heigh map to blend
+    float f1h = d1H / 10.0f;
+    float f2h = d2H / 10.0f;
+    float f3h = d3H / 10.0f;
+    
+    float4 diffuse = anchorDistribute_M(COLOR_CLEAR, COLOR_CLEAR, COLOR_CLEAR, d4_a, height, f1h, f2h, f3h);
+    float4 alpha = anchorDistribute_M(COLOR_BLACK, COLOR_BLACK, COLOR_BLACK, COLOR_WHITE, height, f1h, f2h, f3h);
+    
+    // blend method
+    diffuse.xyz = desaturate(diffuse.xyz, 0.35);
+    //diffuse = diffuse * 1.2;
+    diffuse.a = alpha.r;
+    //diffuse = b_a*(1-k) + diffuse * k;
+    //float blend0 = 1.0f - m;
+    //float blend1 = m;
+
+    //diffuse = height * blend0 + diffuse * blend1;
+    return diffuse;
+}
+
+float4 PS_MULTI_LAYER(PS_IN IN, uniform int C) : SV_Target
+{
+
+    float blend0 = 1.0f - m;
+    float blend1 = m;
+
+	//M : blend meathod
+    float4 col;
+    float3 diffuse = float3(0, 0, 0);
+
+    //maps
+    int UVscale = 25;
+    float4 blendmaps[da_];
+    float4 b_a = blendBase.Sample(blendBaseSampler, IN.uv);
+    float4 blend = blendBase_o.Sample(blendBaseSampler_o, IN.uv);
+    float4 d1_a = d1aMap.Sample(d1aMap_Sampler, IN.uv * UVscale);
+    float4 d2_a = d2aMap.Sample(d2aMap_Sampler, IN.uv * UVscale);
+    float4 d3_a = d3aMap.Sample(d3aMap_Sampler, IN.uv * UVscale);
+    float4 d4_a = d4aMap.Sample(d4aMap_Sampler, IN.uv * UVscale);
+
+	//blend meathods
+    if (BM == 0)
+    {
+        //layer1 blend by color , add general blend
+        float3 l1 = blendByColor_M(b_a, d1_a, d2_a, d3_a, d4_a, IN.col);
+
+        //layer 3 normal mask
+        float NoU = dot(IN.nor, float3(0, 0, 1));
+        float l3 = blendByNormal_M(b_a, d1_a, d2_a, d3_a, d4_a, NoU).x;
+
+        //llayer2 blend by height , 
+        float4 l2 = blendByHeight_M(b_a, d1_a, d2_a, d3_a, d4_a, b_a.a);
+        l2.a *= l3;
+        diffuse.xyz = (1 - l2.a) * l1 + l2.xyz * l2.a;
+    }
+
+    if (BM == 1)
+    {
+        diffuse = blendByColor(b_a, COLOR_R, COLOR_Y, COLOR_G, COLOR_B, IN.col);
+
+    }
+
+  //  if (BM == 0)
+  //  {
+  //      diffuse = blendByColor_M(b_a, d1_a, d2_a, d3_a, d4_a, IN.col);
+  //  }
+  //  if (BM == 1)
+  //  {
+		////use heigh to blend
+  //      diffuse = blendByHeight_M(b_a, d1_a, d2_a, d3_a, d4_a, b_a.a).xyz;
+  //  }
+  //  if (BM == 2)
+  //  {
+		////use normal
+  //      float NoU = dot(IN.nor, float3(0, 0, 1));
+  //      diffuse = blendByNormal_M(b_a, d1_a, d2_a, d3_a, d4_a, NoU).xyz;
+  //  }
+
+    diffuse = blend.xyz * blend0 + diffuse * blend1;
+        
+    //normal
+    float3 N = IN.nor;
+
+    //lighting
+    float3 A = float3(0.36f, 0.37f, 0.38f) * 0.01;
+    float3 L = normalize(Lamp0Pos - IN.p_w);
+    float3 V = IN.viw;
+
+    float3 Hn = normalize(L + V);
+
+    float4 litV = lit(dot(L, N), dot(Hn, N), 5);
+    float3 D = litV.y * diffuse;
+    float3 S = litV.y * litV.z * (diffuse * 0.5 + float3(1, 1, 1) * 0.5);
+
+    col.xyz = diffuse;
 
     col.w = 1;
     return col;
@@ -425,6 +676,21 @@ technique11 VertexByChannel<
         SetVertexShader(CompileShader(vs_5_0, VS()));
         SetGeometryShader(NULL);
         SetPixelShader(CompileShader(ps_5_0, PS_VERTEX(1)));
+    }
+}
+
+
+technique11 multilayer<
+                string script = "Pass = p0;";
+                >
+{
+    pass p0 <
+                string Script = "Draw=geometry;";
+                >
+    {
+        SetVertexShader(CompileShader(vs_5_0, VS()));
+        SetGeometryShader(NULL);
+        SetPixelShader(CompileShader(ps_5_0, PS_MULTI_LAYER(1)));
     }
 }
 

@@ -7,12 +7,15 @@ float4x4 world : WORLD;
 float4x4 worldI : WorldInverseTranspose;
 
 #define PI 3.14159265359
-#define COLOR_R float3(1,0,0)
-#define COLOR_Y float3(1,1,0)
-#define COLOR_G float3(0,1,0)
-#define COLOR_C float3(0,1,1)
-#define COLOR_B float3(0,0,1)
+#define COLOR_R float4(1,0,0,1)
+#define COLOR_Y float4(1,1,0,1)
+#define COLOR_G float4(0,1,0,1)
+#define COLOR_C float4(0,1,1,1)
+#define COLOR_B float4(0,0,1,1)
 #define COLOR_V float3(1,0,1)
+#define COLOR_BLACK float4(0,0,0,1)
+#define COLOR_WHITE float4(1,1,1,1)
+#define COLOR_CLEAR float4(0,0,0,0)
 #define DielectricSpec float4(0.22f, 0.22f, 0.22f, 0.779f)
 
 #define SCRIPT_FX(usetechnique) float Script : STANDARDSGLOBAL <\
@@ -197,6 +200,14 @@ float3 blendNormal(float3 n1, float3 n2)
 {
     float3 BN = normalize(float3(n1.xy + n2.xy, n1.z * n2.z));
     return BN;
+}
+
+float3 desaturate(float3 col , float i)
+{
+    float3 result;
+    float grey = (col.x + col.y + col.z) / 3 * i;
+    result.xyz = col.xyz * (1 - i) + float3(grey, grey, grey);
+    return result;
 }
 
 
