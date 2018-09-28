@@ -1,4 +1,5 @@
-#include "Common/Common.hlsli"
+//#include "Common/Common.hlsli"
+//#include "Common/shadowMap.hlsli"
 #define BASE_N "D:/work/HLSL/texture/pbrT_n.png"
 TEXTURE2D(Nmap, n_Sampler, BASE_N, "normal")
 
@@ -6,7 +7,7 @@ SCRIPT_FX("Technique=Main_11;")
 
 DECLARE_FLOAT(myFloat, 0, 1, 0.5, "my float")
 DECLARE_COLOR(myColor, float4(1,1,1,1), "my color")
-DECLARE_LIGHT(myLight, "PointLight0", "Light Position", 0)
+DECLARE_LIGHT(myLight, "PointLight0", myLightColor, "Light Position", 0)
 struct VS_IN
 {
     float4 pos : POSITION;
