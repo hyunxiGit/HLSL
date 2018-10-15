@@ -567,7 +567,7 @@ float4 blendByHeight_M(float4 b_a, float4 d1_a, float4 d2_a, float4 d3_a, float4
     return diffuse;
 }
 
-float4 PS_MULTI_LAYER(PS_IN IN, uniform int C) : SV_Target
+float4 PS_MULTI_LAYER(PS_IN IN) : SV_Target
 {
 
     float blend0 = 1.0f - m;
@@ -593,11 +593,11 @@ float4 PS_MULTI_LAYER(PS_IN IN, uniform int C) : SV_Target
         //layer1 blend by color , add general blend
         float3 l1 = blendByColor_M(b_a, d1_a, d2_a, d3_a, d4_a, IN.col);
 
-        //layer 3 normal mask
+        //layer 2 normal mask
         float NoU = dot(IN.nor, float3(0, 0, 1));
         float l3 = blendByNormal_M(b_a, d1_a, d2_a, d3_a, d4_a, NoU).x;
 
-        //llayer2 blend by height , 
+        //llayer 3 blend by height , 
         float4 l2 = blendByHeight_M(b_a, d1_a, d2_a, d3_a, d4_a, b_a.a);
         l2.a *= l3;
         diffuse.xyz = (1 - l2.a) * l1 + l2.xyz * l2.a;
@@ -608,22 +608,6 @@ float4 PS_MULTI_LAYER(PS_IN IN, uniform int C) : SV_Target
         diffuse = blendByColor(b_a, COLOR_R, COLOR_Y, COLOR_G, COLOR_B, IN.col);
 
     }
-
-  //  if (BM == 0)
-  //  {
-  //      diffuse = blendByColor_M(b_a, d1_a, d2_a, d3_a, d4_a, IN.col);
-  //  }
-  //  if (BM == 1)
-  //  {
-		////use heigh to blend
-  //      diffuse = blendByHeight_M(b_a, d1_a, d2_a, d3_a, d4_a, b_a.a).xyz;
-  //  }
-  //  if (BM == 2)
-  //  {
-		////use normal
-  //      float NoU = dot(IN.nor, float3(0, 0, 1));
-  //      diffuse = blendByNormal_M(b_a, d1_a, d2_a, d3_a, d4_a, NoU).xyz;
-  //  }
 
     diffuse = blend.xyz * blend0 + diffuse * blend1;
         
@@ -651,33 +635,33 @@ float4 PS_MULTI_LAYER(PS_IN IN, uniform int C) : SV_Target
 fxgroup dx11
 {
 
-technique11 VertexByColor<
-            string script = "Pass = p0;";
-            >
-{
-    pass p0 <
-            string Script = "Draw=geometry;";
-            >
-    {
-        SetVertexShader(CompileShader(vs_5_0, VS()));
-        SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(ps_5_0, PS_VERTEX(0)));
-    }
-}
+//technique11 VertexByColor<
+//            string script = "Pass = p0;";
+//            >
+//{
+//    pass p0 <
+//            string Script = "Draw=geometry;";
+//            >
+//    {
+//        SetVertexShader(CompileShader(vs_5_0, VS()));
+//        SetGeometryShader(NULL);
+//        SetPixelShader(CompileShader(ps_5_0, PS_VERTEX(0)));
+//    }
+//}
 
-technique11 VertexByChannel<
-                string script = "Pass = p0;";
-                >
-{
-    pass p0 <
-                string Script = "Draw=geometry;";
-                >
-    {
-        SetVertexShader(CompileShader(vs_5_0, VS()));
-        SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(ps_5_0, PS_VERTEX(1)));
-    }
-}
+//technique11 VertexByChannel<
+//                string script = "Pass = p0;";
+//                >
+//{
+//    pass p0 <
+//                string Script = "Draw=geometry;";
+//                >
+//    {
+//        SetVertexShader(CompileShader(vs_5_0, VS()));
+//        SetGeometryShader(NULL);
+//        SetPixelShader(CompileShader(ps_5_0, PS_VERTEX(1)));
+//    }
+//}
 
 
 technique11 multilayer<
@@ -690,7 +674,7 @@ technique11 multilayer<
     {
         SetVertexShader(CompileShader(vs_5_0, VS()));
         SetGeometryShader(NULL);
-        SetPixelShader(CompileShader(ps_5_0, PS_MULTI_LAYER(1)));
+        SetPixelShader(CompileShader(ps_5_0, PS_MULTI_LAYER()));
     }
 }
 
