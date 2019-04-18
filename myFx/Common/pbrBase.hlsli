@@ -2,6 +2,11 @@
 #define PBRBASE_HLSLI
 #include "Common.hlsli"
 
+float3 rotateCubeAxis(float3 v)
+{
+	return float3(v.x , v.z , v.y);
+}
+
 float GlV(float NoV, float k)
 {
     return NoV / (NoV * (1 - k) + k);
@@ -156,7 +161,7 @@ float3 irradianceSample(TextureCube EnvMap, SamplerState EnvMapSampler,float3 N)
 float3 diffuseIBL(TextureCube EnvMap, SamplerState EnvMapSampler, float3 N)
 {
     //instead of using an irradiance map , I used a lower level mipmap as proximiation, this can be improve later where I have the irradiance map calculate on CPU
-    float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, N, 8).rgb;
+    float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, rotateCubeAxis(N), 8).rgb;
     return SampleColor;
 }
 
@@ -233,7 +238,7 @@ IBL_BRDFOUT sampleIBL_BRDF(TextureCube EnvMap, SamplerState EnvMapSampler, float
 
         if (NoL > 0)
         {
-            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, L, mipLevel).rgb;
+            float3 SampleColor = EnvMap.SampleLevel(EnvMapSampler, rotateCubeAxis(L), mipLevel).rgb;
             float G = GS(NoV, NoL, k_ibl);
             float3 F = fresnelSchlick(NoH, surfaceColor, metalic);
 			
