@@ -84,7 +84,7 @@ void useMapBlend(inout float4 Ab, inout float Ro, inout float Me, inout float3 n
 
 float4 PS(PS_IN IN) : SV_Target
 {
-
+    
     float3 N_W = mul(IN.N_O, world);
     float3 B_W = mul(IN.B_O, world);
     float3 T_W = mul(IN.T_O, world);
@@ -111,12 +111,6 @@ float4 PS(PS_IN IN) : SV_Target
     float3 L = normalize(myLight - IN.P_W.xyz);
     float3 V = normalize((viewI[3] - IN.P_W).xyz);
     float3 H = normalize(V + L);
-
-    float4 D = float4(0, 0, 0, 0);
-    float4 S = float4(0, 0, 0, 0);
-
-    float4 SC = lerp(DielectricSpec, Ab, Me);
-    float4 DC = Ab * (DielectricSpec.a * (1 - Me));
     
     float NoV = saturate(dot(N, V));
     float NoL = dot(N, L);
