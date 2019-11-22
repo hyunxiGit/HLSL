@@ -94,7 +94,7 @@ float4 PS(PS_IN IN) : SV_Target
     float Me = Amap.Sample(m_Sampler, IN.uv);
        
     //sRGB to RGB
-    Ab.xyz = pow(Ab.xyz, 2.2);
+    Ab.xyz = pow(Ab.xyz, 1/2.2);
 
     float3 nMap = processNMap(Nmap.Sample(n_Sampler, IN.uv).xyz);
     //float3 d1nMap = processNMap(D1Nmap.Sample(D1N_Sampler, IN.uv).xyz);
@@ -143,6 +143,7 @@ float4 PS(PS_IN IN) : SV_Target
 
     //tone map from HDR to LDR
     //gammarCorrect(color);
+    color = pow(color, 2.2);
     return float4(color,1);
 }
 
